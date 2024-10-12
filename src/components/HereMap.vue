@@ -43,7 +43,7 @@ export default {
 
       // Instantiate and display a map object:
       const map = new H.Map(mapContainer, defaultLayers.vector.normal.map, {
-        zoom: 12,
+        zoom: 13,
         center: this.center,
       })
 
@@ -56,6 +56,9 @@ export default {
 
       // Now use the map as required...
       this.calculateRouteFromAtoB(map)
+
+      // Add the polygons to the map
+      this.addPolygonToMap(map)
     },
 
     calculateRouteFromAtoB(map) {
@@ -119,6 +122,56 @@ export default {
         const endMarker = new H.map.Marker(section.arrival.place.location)
         map.addObjects([startMarker, endMarker])
       })
+    },
+
+    addPolygonToMap(map) {
+      const H = window.H
+
+      // Define the coordinates of the first polygon
+      const polygonCoords1 = [
+        { lat: 40.748817, lng: -73.985428 }, // Near Times Square
+        { lat: 40.751776, lng: -73.977272 }, // Near Grand Central Terminal
+        { lat: 40.744679, lng: -73.977272 }, // Near Madison Square Park
+      ]
+
+      // Define the coordinates of the second polygon, slightly overlapping the first
+      const polygonCoords2 = [
+        { lat: 40.749817, lng: -73.984428 }, // Slightly offset from the first polygon
+        { lat: 40.752776, lng: -73.976272 },
+        { lat: 40.745679, lng: -73.976272 },
+      ]
+
+      // Create LineStrings from the coordinates
+      const linestring1 = new H.geo.LineString()
+      polygonCoords1.forEach(point => {
+        linestring1.pushPoint(point)
+      })
+
+      const linestring2 = new H.geo.LineString()
+      polygonCoords2.forEach(point => {
+        linestring2.pushPoint(point)
+      })
+
+      // Create the first polygon
+      const polygon1 = new H.map.Polygon(linestring1, {
+        style: {
+          fillColor: 'rgba(255, 0, 0, 0.5)', // Semi-transparent red
+          strokeColor: 'red', // Border color
+          lineWidth: 2,
+        },
+      })
+
+      // Create the second polygon
+      const polygon2 = new H.map.Polygon(linestring2, {
+        style: {
+          fillColor: 'rgba(0, 255, 0, 0.5)', // Semi-transparent green
+          strokeColor: 'green', // Border color
+          lineWidth: 2,
+        },
+      })
+
+      // Add the polygons to the map
+      map.addObjects([polygon1, polygon2])
     },
   },
 }
