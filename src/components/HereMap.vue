@@ -29,7 +29,7 @@ export default {
   data() {
     return {
       platform: null,
-      apikey: 'WHOSPkTEgm_qFM-8asn9-PHpB75Pj6JQjYzot2OMNrw', // Replace with your actual API key
+      apikey: 'eGWoAInnodfZ-UvHagn1dedcuFkk3R5ws63jojRh2ZY', // Replace with your actual API key
       map: null,
       // Store polygon coordinates
       polygonCoords1: [

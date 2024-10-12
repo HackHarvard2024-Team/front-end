@@ -10,20 +10,25 @@
         <div>
           <label for="startAddress">Starting Address:</label>
           <input type="text" v-model="startAddress" id="startAddress" />
-          <!-- Display the geocoded lat/lng -->
-          <p v-if="startLat && startLng">Latitude: {{ startLat }}</p>
-          <p v-if="startLat && startLng">Longitude: {{ startLng }}</p>
         </div>
         <!-- Input fields for destination address -->
         <div>
           <label for="destAddress">Destination Address:</label>
           <input type="text" v-model="destAddress" id="destAddress" />
-          <!-- Display the geocoded lat/lng -->
-          <p v-if="destLat && destLng">Latitude: {{ destLat }}</p>
-          <p v-if="destLat && destLng">Longitude: {{ destLng }}</p>
         </div>
         <!-- Submit button -->
         <button @click="submit">Submit</button>
+        <!-- Display the geocoded lat/lng after submission -->
+        <div v-if="startLat && startLng">
+          <p><strong>Starting Coordinates:</strong></p>
+          <p>Latitude: {{ startLat }}</p>
+          <p>Longitude: {{ startLng }}</p>
+        </div>
+        <div v-if="destLat && destLng">
+          <p><strong>Destination Coordinates:</strong></p>
+          <p>Latitude: {{ destLat }}</p>
+          <p>Longitude: {{ destLng }}</p>
+        </div>
       </div>
       <!-- Main content -->
       <div class="main-content">
@@ -39,7 +44,6 @@ export default {
   name: 'app',
   components: {
     HereMap,
-    // Removed HelloWorld.vue as per your instructions
   },
   data() {
     return {
@@ -55,69 +59,66 @@ export default {
       destLng: null,
       origin: null, // Will be set when the user submits
       destination: null, // Will be set when the user submits
-      apiKey: 'WHOSPkTEgm_qFM-8asn9-PHpB75Pj6JQjYzot2OMNrw', // Replace with your actual HERE API key
+      apiKey: 'eGWoAInnodfZ-UvHagn1dedcuFkk3R5ws63jojRh2ZY', // Replace with your actual HERE API key
     }
   },
   methods: {
-    submit() {
-      if (
-        this.startLat == null ||
-        this.startLng == null ||
-        this.destLat == null ||
-        this.destLng == null
-      ) {
-        alert(
-          'Please enter valid addresses and ensure they are geocoded correctly.',
-        )
+    async submit() {
+      if (!this.startAddress || !this.destAddress) {
+        alert('Please enter both starting and destination addresses.')
         return
       }
-      // Set the origin and destination
-      this.origin = { lat: this.startLat, lng: this.startLng }
-      this.destination = { lat: this.destLat, lng: this.destLng }
-    },
-    geocodeAddress(address, callback) {
-      // Use fetch to call the HERE Geocoding API
-      const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(
-        address,
-      )}&apiKey=${this.apiKey}`
-      fetch(url)
-        .then(response => response.json())
-        .then(data => {
-          if (data.items && data.items.length > 0) {
-            const position = data.items[0].position
-            callback(position.lat, position.lng)
-          } else {
-            callback(null, null)
-          }
-        })
-        .catch(error => {
-          console.error('Error during geocoding:', error)
-          callback(null, null)
-        })
-    },
-  },
-  watch: {
-    startAddress(newAddress) {
-      if (newAddress) {
-        this.geocodeAddress(newAddress, (lat, lng) => {
-          this.startLat = lat
-          this.startLng = lng
-        })
-      } else {
-        this.startLat = null
-        this.startLng = null
+      try {
+        // Geocode both addresses
+        const [startPosition, destPosition] = await Promise.all([
+          this.geocodeAddress(this.startAddress),
+          this.geocodeAddress(this.destAddress),
+        ])
+
+        if (!startPosition) {
+          alert('Could not geocode the starting address.')
+          return
+        }
+        if (!destPosition) {
+          alert('Could not geocode the destination address.')
+          return
+        }
+
+        // Set the coordinates
+        this.startLat = startPosition.lat
+        this.startLng = startPosition.lng
+        this.destLat = destPosition.lat
+        this.destLng = destPosition.lng
+
+        // Set the origin and destination
+        this.origin = { lat: this.startLat, lng: this.startLng }
+        this.destination = { lat: this.destLat, lng: this.destLng }
+      } catch (error) {
+        console.error('Error during geocoding:', error)
+        alert('An error occurred during geocoding.')
       }
     },
-    destAddress(newAddress) {
-      if (newAddress) {
-        this.geocodeAddress(newAddress, (lat, lng) => {
-          this.destLat = lat
-          this.destLng = lng
-        })
-      } else {
-        this.destLat = null
-        this.destLng = null
-      }
+    geocodeAddress(address) {
+      // Return a Promise to handle asynchronous operation
+      return new Promise((resolve, reject) => {
+        const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(
+          address,
+        )}&apiKey=${this.apiKey}`
+        fetch(url)
+          .then(response => response.json())
+          .then(data => {
+            if (data.items && data.items.length > 0) {
+              const position = data.items[0].position
+              resolve(position)
+            } else {
+              resolve(null)
+            }
+          })
+          .catch(error => {
+            console.error('Error during geocoding:', error)
+            reject(error)
+          })
+      })
     },
   },
 }
@@ -128,7 +129,6 @@ export default {
   font-family: 'Avenir', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
   color: #2c3e50;
   margin: 0;
   padding: 0;
@@ -142,11 +142,11 @@ export default {
 }
 
 .sidebar {
-  width: 300px; /* Adjust the width as needed */
+  width: 300px;
   background-color: #f8f9fa;
   padding: 20px;
   overflow-y: auto;
-  text-align: left; /* Align labels and inputs to the left */
+  text-align: left;
 }
 
 .sidebar label {
@@ -166,7 +166,7 @@ export default {
 }
 
 .main-content {
-  flex: 1; /* Fills the remaining space */
+  flex: 1;
   display: flex;
 }
 
