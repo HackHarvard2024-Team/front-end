@@ -90,12 +90,12 @@ export default {
 
           // Remove existing location marker if it exists
           if (this.currentLocationMarker) {
-            this.map.removeObject(this.currentLocationMarker)
+            this.currentLocationMarker.setGeometry(userPosition)
+          } else {
+            // Create a new marker if it doesn't exist
+            this.currentLocationMarker = new H.map.Marker(userPosition)
+            this.map.addObject(this.currentLocationMarker)
           }
-
-          // Create a new marker and center the map
-          this.currentLocationMarker = new H.map.Marker(userPosition)
-          this.map.addObject(this.currentLocationMarker)
 
           // Center the map on the searched place
           this.map.getViewModel().setLookAtData({
@@ -197,7 +197,12 @@ export default {
 
       // Clear previous routes and markers, but keep the search marker
       map.removeObjects(
-        map.getObjects().filter(obj => obj !== this.searchMarker),
+        map
+          .getObjects()
+          .filter(
+            obj =>
+              obj !== this.searchMarker && obj !== this.currentLocationMarker,
+          ),
       )
 
       // Add the polygons back to the map
