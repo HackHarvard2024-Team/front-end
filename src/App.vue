@@ -53,12 +53,13 @@
               v-for="(item, index) in routeInstructions.instructions"
               :key="index"
             >
-              {{ item.instruction }} Go for {{ item.distance }} m.
+              {{ item.instruction }} Go for
+              {{ formatDistance(item.distance) }} miles.
             </li>
           </ol>
           <p>
             <strong>Total distance:</strong>
-            {{ routeInstructions.totalDistance }} m.<br />
+            {{ formatDistance(routeInstructions.totalDistance) }} miles.<br />
             <strong>Travel Time:</strong>
             {{ formatDuration(routeInstructions.totalDuration) }}.
           </p>
@@ -187,6 +188,12 @@ export default {
         return `${pluralize(days, 'day')} ${pluralize(hours, 'hour')} ${pluralize(minutes, 'minute')}`
       }
     },
+    formatDistance(distanceInMeters) {
+      // Convert meters to miles
+      const miles = distanceInMeters * 0.000621371
+      // Format the number with commas and two decimal places
+      return miles.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    },
   },
 }
 </script>
@@ -221,7 +228,8 @@ export default {
   margin-top: 10px;
 }
 
-.sidebar input {
+.sidebar input,
+.sidebar select {
   width: 100%;
   padding: 5px;
   margin-top: 5px;
