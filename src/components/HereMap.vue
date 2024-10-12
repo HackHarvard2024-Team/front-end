@@ -1,5 +1,15 @@
 <template>
   <div id="map">
+    <!-- Search Bar Overlay -->
+    <div class="search-bar">
+      <input
+        type="text"
+        v-model="searchQuery"
+        @keyup.enter="searchPlace"
+        placeholder="Search for a place"
+      />
+      <button @click="searchPlace">Search</button>
+    </div>
     <!-- The HERE Map will render in this div -->
     <div
       id="mapContainer"
@@ -35,6 +45,9 @@ export default {
       platform: null,
       apikey: 'eGWoAInnodfZ-UvHagn1dedcuFkk3R5ws63jojRh2ZY', // Replace with your actual API key
       map: null,
+      ui: null,
+      searchQuery: '',
+      searchMarker: null, // Marker for the searched place
       // Store polygon coordinates
       polygonCoords1: [
         { lat: 40.748817, lng: -73.985428 }, // Near Times Square
@@ -73,8 +86,9 @@ export default {
       this.map = map
 
       // Enable the event system and default interactions:
-      new H.mapevents.Behavior(new H.mapevents.MapEvents(map))
-      H.ui.UI.createDefault(map, defaultLayers)
+      const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map))
+      const ui = H.ui.UI.createDefault(map, defaultLayers)
+      this.ui = ui
 
       // Adjust map viewport on window resize
       window.addEventListener('resize', () => map.getViewPort().resize())
@@ -128,8 +142,10 @@ export default {
     onSuccess(result, map) {
       const route = result.routes[0]
 
-      // Clear previous routes and markers
-      map.removeObjects(map.getObjects())
+      // Clear previous routes and markers, but keep the search marker
+      map.removeObjects(
+        map.getObjects().filter(obj => obj !== this.searchMarker),
+      )
 
       // Add the polygons back to the map
       this.addPolygonsToMap(map)
@@ -241,6 +257,64 @@ export default {
       // Add the polygons to the map
       map.addObjects([polygon1, polygon2])
     },
+
+    async searchPlace() {
+      if (!this.searchQuery) {
+        alert('Please enter a place to search.')
+        return
+      }
+      try {
+        const position = await this.geocodeAddress(this.searchQuery)
+        console.log('Search result:', position)
+        if (!position) {
+          alert('Could not find the place.')
+          return
+        }
+
+        // Remove previous search marker if any
+        if (this.searchMarker) {
+          this.map.removeObject(this.searchMarker)
+        }
+
+        // Add marker to the map
+        const H = window.H
+        this.searchMarker = new H.map.Marker(position)
+        this.map.addObject(this.searchMarker)
+
+        // Center the map on the searched place
+        this.map.getViewModel().setLookAtData({
+          position: position,
+          zoom: 15, // Adjust or remove zoom if bounds are used
+        })
+      } catch (error) {
+        console.error('Error during search:', error)
+        alert('An error occurred during the search.')
+      }
+    },
+
+    geocodeAddress(address) {
+      // Return a Promise to handle asynchronous operation
+      return new Promise((resolve, reject) => {
+        const H = window.H
+        const service = this.platform.getSearchService()
+
+        service.geocode(
+          { q: address },
+          result => {
+            if (result.items && result.items.length > 0) {
+              const position = result.items[0].position
+              resolve(position)
+            } else {
+              resolve(null)
+            }
+          },
+          error => {
+            console.error('Geocoding error:', error)
+            reject(error)
+          },
+        )
+      })
+    },
   },
   watch: {
     origin(newOrigin) {
@@ -264,10 +338,31 @@ export default {
 
 <style scoped>
 #map {
+  position: relative;
   width: 100%;
   height: 100vh;
   min-width: 360px;
   text-align: center;
   background-color: #ccc;
+}
+
+.search-bar {
+  position: absolute;
+  top: 10px;
+  left: 10%;
+  width: 80%;
+  display: flex;
+  z-index: 1000;
+}
+
+.search-bar input {
+  flex: 1;
+  padding: 8px;
+  font-size: 14px;
+}
+
+.search-bar button {
+  padding: 8px 16px;
+  font-size: 14px;
 }
 </style>
