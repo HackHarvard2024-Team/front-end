@@ -59,8 +59,8 @@ export default {
       })
 
       // Enable the event system and default interactions:
-      const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map))
-      const ui = H.ui.UI.createDefault(map, defaultLayers)
+      new H.mapevents.Behavior(new H.mapevents.MapEvents(map))
+      H.ui.UI.createDefault(map, defaultLayers)
 
       // Adjust map viewport on window resize
       window.addEventListener('resize', () => map.getViewPort().resize())
