@@ -5,6 +5,21 @@
       <div class="sidebar">
         <!-- Sidebar content -->
         <h3>Sidebar</h3>
+
+        <!-- Unit Selection -->
+        <div>
+          <label>Distance Unit:</label><br />
+          <input type="radio" id="miles" value="miles" v-model="unit" />
+          <label for="miles">Miles</label>
+          <input
+            type="radio"
+            id="kilometers"
+            value="kilometers"
+            v-model="unit"
+          />
+          <label for="kilometers">Kilometers</label>
+        </div>
+
         <!-- Input fields for starting address -->
         <div>
           <label for="startAddress">Starting Address:</label>
@@ -26,7 +41,6 @@
             <option value="scooter">Scooter</option>
             <option value="taxi">Taxi</option>
             <option value="bus">Bus</option>
-            <option value="delivery">Delivery</option>
           </select>
         </div>
         <!-- Submit button -->
@@ -53,13 +67,12 @@
               v-for="(item, index) in routeInstructions.instructions"
               :key="index"
             >
-              {{ item.instruction }} Go for
-              {{ formatDistance(item.distance) }} miles.
+              {{ item.instruction }} Go for {{ formatDistance(item.distance) }}.
             </li>
           </ol>
           <p>
             <strong>Total distance:</strong>
-            {{ formatDistance(routeInstructions.totalDistance) }} miles.<br />
+            {{ formatDistance(routeInstructions.totalDistance) }}.<br />
             <strong>Travel Time:</strong>
             {{ formatDuration(routeInstructions.totalDuration) }}.
           </p>
@@ -103,6 +116,7 @@ export default {
       apiKey: 'eGWoAInnodfZ-UvHagn1dedcuFkk3R5ws63jojRh2ZY', // Replace with your actual HERE API key
       routeInstructions: null, // Will store the route instructions and summary
       transportMode: 'car', // Default transportation mode
+      unit: 'miles', // Default unit for distance
     }
   },
   methods: {
@@ -189,10 +203,25 @@ export default {
       }
     },
     formatDistance(distanceInMeters) {
-      // Convert meters to miles
-      const miles = distanceInMeters * 0.000621371
+      let distance
+      let unitLabel
+
+      if (this.unit === 'miles') {
+        // Convert meters to miles
+        distance = distanceInMeters * 0.000621371
+        unitLabel = distance === 1 ? 'mile' : 'miles'
+      } else {
+        // Convert meters to kilometers
+        distance = distanceInMeters / 1000
+        unitLabel = distance === 1 ? 'kilometer' : 'kilometers'
+      }
+
       // Format the number with commas and two decimal places
-      return miles.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+      const formattedDistance = distance
+        .toFixed(2)
+        .replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+
+      return `${formattedDistance} ${unitLabel}`
     },
   },
 }
@@ -228,11 +257,15 @@ export default {
   margin-top: 10px;
 }
 
-.sidebar input,
+.sidebar input[type='text'],
 .sidebar select {
   width: 100%;
   padding: 5px;
   margin-top: 5px;
+}
+
+.sidebar input[type='radio'] {
+  margin-top: 10px;
 }
 
 .sidebar button {
