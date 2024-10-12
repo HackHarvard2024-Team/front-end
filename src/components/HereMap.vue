@@ -14,6 +14,11 @@
         <span class="slider round"></span>
       </label>
     </div>
+    <!-- My Location Button -->
+    <button class="my-location-btn" @click="getMyLocation">
+      <p>My Location</p>
+      <!-- <img src="/path/to/location-icon.png" alt="My Location Icon" /> -->
+    </button>
     <!-- The HERE Map will render in this div -->
     <div
       id="mapContainer"
@@ -46,6 +51,7 @@ export default {
   },
   data() {
     return {
+      currentLocationMarker: null,
       isDarkMode: false,
       platform: null,
       apikey: 'eGWoAInnodfZ-UvHagn1dedcuFkk3R5ws63jojRh2ZY', // Replace with your actual API key
@@ -74,6 +80,34 @@ export default {
     this.initializeHereMap()
   },
   methods: {
+    getMyLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+          const lat = position.coords.latitude
+          const lng = position.coords.longitude
+          const userPosition = { lat, lng }
+          const H = window.H
+
+          // Remove existing location marker if it exists
+          if (this.currentLocationMarker) {
+            this.map.removeObject(this.currentLocationMarker)
+          }
+
+          // Create a new marker and center the map
+          this.currentLocationMarker = new H.map.Marker(userPosition)
+          this.map.addObject(this.currentLocationMarker)
+
+          // Center the map on the searched place
+          this.map.getViewModel().setLookAtData({
+            position: userPosition,
+            zoom: 15, // Adjust or remove zoom if bounds are used
+          })
+        })
+      } else {
+        alert('Geolocation is not supported by your browser.')
+      }
+    },
+
     initializeHereMap() {
       const H = window.H
       const mapContainer = this.$refs.hereMap
@@ -94,7 +128,7 @@ export default {
       this.map = map
 
       // Enable the event system and default interactions:
-      const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map))
+      new H.mapevents.Behavior(new H.mapevents.MapEvents(map))
       const ui = H.ui.UI.createDefault(map, defaultLayers)
       this.ui = ui
 
@@ -103,6 +137,8 @@ export default {
 
       // Add the polygons to the map
       this.addPolygonsToMap(map)
+
+      this.getMyLocation()
     },
     toggleMapMode() {
       const defaultLayers = this.platform.createDefaultLayers()
@@ -433,5 +469,23 @@ input:checked + .slider:before {
 
 .slider.round:before {
   border-radius: 50%;
+}
+
+.my-location-btn {
+  position: absolute;
+  top: 10px; /* Aligns the button at the top */
+  right: 10px; /* Aligns it near the map's scroll controls */
+  background: white;
+  border: none;
+  padding: 10px;
+  border-radius: 50%;
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  z-index: 1000; /* Ensures it's above the map */
+}
+
+.my-location-btn img {
+  width: 24px;
+  height: 24px;
 }
 </style>
