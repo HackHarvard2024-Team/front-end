@@ -25,6 +25,10 @@ export default {
       type: Object,
       default: null, // Will be provided by the parent component
     },
+    transportMode: {
+      type: String,
+      default: 'car', // Default transport mode
+    },
   },
   data() {
     return {
@@ -87,12 +91,13 @@ export default {
 
       const routeRequestParams = {
         routingMode: 'fast',
-        transportMode: 'car',
+        transportMode: this.transportMode, // Use the selected transport mode
         origin: `${this.origin.lat},${this.origin.lng}`, // Use this.origin
         destination: `${this.destination.lat},${this.destination.lng}`, // Use this.destination
         return: 'polyline,turnByTurnActions,actions,instructions,travelSummary',
         // Add the 'avoid[areas]' parameter
         'avoid[areas]': avoidAreas,
+        polylineQuality: 'reduced', // Controls the number of points in the polyline
       }
 
       router.calculateRoute(
@@ -134,6 +139,35 @@ export default {
 
       // Optionally, add markers and other route details
       this.addMarkersToMap(route, map)
+
+      // Extract route instructions and summary
+      const routeData = this.extractRouteInstructions(route)
+      // Emit the data to the parent component
+      this.$emit('route-instructions', routeData)
+    },
+
+    extractRouteInstructions(route) {
+      let instructions = []
+      let totalDistance = 0
+      let totalDuration = 0
+
+      route.sections.forEach(section => {
+        totalDistance += section.travelSummary.length
+        totalDuration += section.travelSummary.duration
+
+        section.actions.forEach(action => {
+          instructions.push({
+            instruction: action.instruction,
+            distance: action.length ? action.length : 0, // Distance per action if available
+          })
+        })
+      })
+
+      return {
+        instructions,
+        totalDistance,
+        totalDuration,
+      }
     },
 
     onError(error) {
@@ -216,6 +250,11 @@ export default {
     },
     destination(newDestination) {
       if (newDestination && this.origin && this.map) {
+        this.calculateRouteFromAtoB(this.map)
+      }
+    },
+    transportMode(newMode) {
+      if (this.origin && this.destination && this.map) {
         this.calculateRouteFromAtoB(this.map)
       }
     },
