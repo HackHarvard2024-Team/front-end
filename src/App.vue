@@ -166,22 +166,25 @@ export default {
       this.routeInstructions = routeData
     },
     formatDuration(duration) {
+      const pluralize = (value, label) =>
+        `${value} ${label}${value !== 1 ? 's' : ''}`
+
       if (duration < 3600) {
         // Less than 1 hour
         const minutes = Math.floor(duration / 60)
         const seconds = duration % 60
-        return `${minutes} minutes ${seconds} seconds`
+        return `${pluralize(minutes, 'minute')} ${pluralize(seconds, 'second')}`
       } else if (duration < 86400) {
         // Less than 1 day
         const hours = Math.floor(duration / 3600)
         const minutes = Math.floor((duration % 3600) / 60)
-        return `${hours} hours ${minutes} minutes`
+        return `${pluralize(hours, 'hour')} ${pluralize(minutes, 'minute')}`
       } else {
         // 1 day or more
         const days = Math.floor(duration / 86400)
         const hours = Math.floor((duration % 86400) / 3600)
         const minutes = Math.floor((duration % 3600) / 60)
-        return `${days} days ${hours} hours ${minutes} minutes`
+        return `${pluralize(days, 'day')} ${pluralize(hours, 'hour')} ${pluralize(minutes, 'minute')}`
       }
     },
   },
