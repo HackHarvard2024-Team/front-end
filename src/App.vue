@@ -24,11 +24,17 @@
         <div>
           <label for="startAddress">Starting Address:</label>
           <input type="text" v-model="startAddress" id="startAddress" />
+          <button @click="setCurrentLocation('start')">
+            Use Current Location
+          </button>
         </div>
         <!-- Input fields for destination address -->
         <div>
           <label for="destAddress">Destination Address:</label>
           <input type="text" v-model="destAddress" id="destAddress" />
+          <button @click="setCurrentLocation('dest')">
+            Use Current Location
+          </button>
         </div>
         <!-- Transportation Mode Selection -->
         <div>
@@ -117,39 +123,69 @@ export default {
       routeInstructions: null, // Will store the route instructions and summary
       transportMode: 'car', // Default transportation mode
       unit: 'miles', // Default unit for distance
+      isStartCurrentLocation: false,
+      isDestCurrentLocation: false,
     }
   },
   methods: {
-    async submit() {
-      if (!this.startAddress || !this.destAddress) {
-        alert('Please enter both starting and destination addresses.')
-        return
+    setCurrentLocation(type) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+          const lat = position.coords.latitude
+          const lng = position.coords.longitude
+          if (type === 'start') {
+            this.startAddress = 'Current Location'
+            this.startLat = lat
+            this.startLng = lng
+            this.isStartCurrentLocation = true
+          } else if (type === 'dest') {
+            this.destAddress = 'Current Location'
+            this.destLat = lat
+            this.destLng = lng
+            this.isDestCurrentLocation = true
+          }
+        })
+      } else {
+        alert('Geolocation is not supported by your browser.')
       }
+    },
+    async submit() {
       try {
-        // Geocode both addresses
-        const [startPosition, destPosition] = await Promise.all([
-          this.geocodeAddress(this.startAddress),
-          this.geocodeAddress(this.destAddress),
-        ])
-
-        if (!startPosition) {
-          alert('Could not geocode the starting address.')
-          return
+        if (
+          this.startAddress === 'Current Location' &&
+          this.isStartCurrentLocation
+        ) {
+          // Current location is already set, use it
+          this.origin = { lat: this.startLat, lng: this.startLng }
+        } else {
+          const startPosition = await this.geocodeAddress(this.startAddress)
+          if (!startPosition) {
+            alert('Could not geocode the starting address.')
+            return
+          }
+          this.startLat = startPosition.lat
+          this.startLng = startPosition.lng
+          this.origin = { lat: this.startLat, lng: this.startLng }
         }
-        if (!destPosition) {
-          alert('Could not geocode the destination address.')
-          return
+
+        if (
+          this.destAddress === 'Current Location' &&
+          this.isDestCurrentLocation
+        ) {
+          // Current location is already set, use it
+          this.destination = { lat: this.destLat, lng: this.destLng }
+        } else {
+          const destPosition = await this.geocodeAddress(this.destAddress)
+          if (!destPosition) {
+            alert('Could not geocode the destination address.')
+            return
+          }
+          this.destLat = destPosition.lat
+          this.destLng = destPosition.lng
+          this.destination = { lat: this.destLat, lng: this.destLng }
         }
 
-        // Set the coordinates
-        this.startLat = startPosition.lat
-        this.startLng = startPosition.lng
-        this.destLat = destPosition.lat
-        this.destLng = destPosition.lng
-
-        // Set the origin and destination
-        this.origin = { lat: this.startLat, lng: this.startLng }
-        this.destination = { lat: this.destLat, lng: this.destLng }
+        // Once the origin and destination are set, trigger the map to calculate the route
       } catch (error) {
         console.error('Error during geocoding:', error)
         alert('An error occurred during geocoding.')
