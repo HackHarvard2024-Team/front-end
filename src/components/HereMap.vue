@@ -3,7 +3,7 @@
     <!-- The HERE Map will render in this div -->
     <div
       id="mapContainer"
-      style="height: 600px; width: 100%"
+      style="height: 100%; width: 100%"
       ref="hereMap"
     ></div>
   </div>
@@ -17,13 +17,20 @@ export default {
       type: Object,
       default: () => ({ lat: 40.73061, lng: -73.935242 }), // Default center if not provided
     },
+    origin: {
+      type: Object,
+      default: null, // Will be provided by the parent component
+    },
+    destination: {
+      type: Object,
+      default: null, // Will be provided by the parent component
+    },
   },
   data() {
     return {
       platform: null,
       apikey: 'WHOSPkTEgm_qFM-8asn9-PHpB75Pj6JQjYzot2OMNrw', // Replace with your actual API key
-      origin: { lat: 40.73061, lng: -73.935242 }, // Point A
-      destination: { lat: 40.741895, lng: -73.989308 }, // Point B
+      map: null,
       // Store polygon coordinates
       polygonCoords1: [
         { lat: 40.748817, lng: -73.985428 }, // Near Times Square
@@ -37,7 +44,7 @@ export default {
       ],
     }
   },
-  async mounted() {
+  mounted() {
     // Initialize the platform object:
     this.platform = new window.H.service.Platform({
       apikey: this.apikey,
@@ -58,15 +65,15 @@ export default {
         center: this.center,
       })
 
+      // Store the map instance
+      this.map = map
+
       // Enable the event system and default interactions:
       new H.mapevents.Behavior(new H.mapevents.MapEvents(map))
       H.ui.UI.createDefault(map, defaultLayers)
 
       // Adjust map viewport on window resize
       window.addEventListener('resize', () => map.getViewPort().resize())
-
-      // Now use the map as required...
-      this.calculateRouteFromAtoB(map)
 
       // Add the polygons to the map
       this.addPolygonsToMap(map)
@@ -81,8 +88,8 @@ export default {
       const routeRequestParams = {
         routingMode: 'fast',
         transportMode: 'car',
-        origin: `${this.origin.lat},${this.origin.lng}`, // Point A
-        destination: `${this.destination.lat},${this.destination.lng}`, // Point B
+        origin: `${this.origin.lat},${this.origin.lng}`, // Use this.origin
+        destination: `${this.destination.lat},${this.destination.lng}`, // Use this.destination
         return: 'polyline,turnByTurnActions,actions,instructions,travelSummary',
         // Add the 'avoid[areas]' parameter
         'avoid[areas]': avoidAreas,
@@ -104,7 +111,7 @@ export default {
         )
       }
 
-      // Combine both polygons, separating them with '!'
+      // Combine both polygons, separating them with '|'
       const avoidAreas = [
         formatPolygon(this.polygonCoords1),
         formatPolygon(this.polygonCoords2),
@@ -115,6 +122,12 @@ export default {
 
     onSuccess(result, map) {
       const route = result.routes[0]
+
+      // Clear previous routes and markers
+      map.removeObjects(map.getObjects())
+
+      // Add the polygons back to the map
+      this.addPolygonsToMap(map)
 
       // Add the route polyline to the map
       this.addRouteShapeToMap(route, map)
@@ -195,15 +208,27 @@ export default {
       map.addObjects([polygon1, polygon2])
     },
   },
+  watch: {
+    origin(newOrigin) {
+      if (newOrigin && this.destination && this.map) {
+        this.calculateRouteFromAtoB(this.map)
+      }
+    },
+    destination(newDestination) {
+      if (newDestination && this.origin && this.map) {
+        this.calculateRouteFromAtoB(this.map)
+      }
+    },
+  },
 }
 </script>
 
 <style scoped>
 #map {
-  width: 60vw;
+  width: 100%;
+  height: 100vh;
   min-width: 360px;
   text-align: center;
-  margin: 5% auto;
   background-color: #ccc;
 }
 </style>
