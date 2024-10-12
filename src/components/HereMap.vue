@@ -24,6 +24,17 @@ export default {
       apikey: 'WHOSPkTEgm_qFM-8asn9-PHpB75Pj6JQjYzot2OMNrw', // Replace with your actual API key
       origin: { lat: 40.73061, lng: -73.935242 }, // Point A
       destination: { lat: 40.741895, lng: -73.989308 }, // Point B
+      // Store polygon coordinates
+      polygonCoords1: [
+        { lat: 40.748817, lng: -73.985428 }, // Near Times Square
+        { lat: 40.751776, lng: -73.977272 }, // Near Grand Central Terminal
+        { lat: 40.744679, lng: -73.977272 }, // Near Madison Square Park
+      ],
+      polygonCoords2: [
+        { lat: 40.749817, lng: -73.984428 }, // Slightly offset from the first polygon
+        { lat: 40.752776, lng: -73.976272 },
+        { lat: 40.745679, lng: -73.976272 },
+      ],
     }
   },
   async mounted() {
@@ -58,17 +69,23 @@ export default {
       this.calculateRouteFromAtoB(map)
 
       // Add the polygons to the map
-      this.addPolygonToMap(map)
+      this.addPolygonsToMap(map)
     },
 
     calculateRouteFromAtoB(map) {
       const router = this.platform.getRoutingService(null, 8) // Use version 8 of the Routing API
+
+      // Prepare the 'avoid[areas]' parameter
+      const avoidAreas = this.constructAvoidAreasParameter()
+
       const routeRequestParams = {
         routingMode: 'fast',
         transportMode: 'car',
         origin: `${this.origin.lat},${this.origin.lng}`, // Point A
         destination: `${this.destination.lat},${this.destination.lng}`, // Point B
         return: 'polyline,turnByTurnActions,actions,instructions,travelSummary',
+        // Add the 'avoid[areas]' parameter
+        'avoid[areas]': avoidAreas,
       }
 
       router.calculateRoute(
@@ -76,6 +93,24 @@ export default {
         result => this.onSuccess(result, map),
         this.onError,
       )
+    },
+
+    constructAvoidAreasParameter() {
+      // Helper function to convert polygon coordinates to the required format
+      const formatPolygon = coords => {
+        return (
+          'polygon:' +
+          coords.map(point => `${point.lat},${point.lng}`).join(';')
+        )
+      }
+
+      // Combine both polygons, separating them with '!'
+      const avoidAreas = [
+        formatPolygon(this.polygonCoords1),
+        formatPolygon(this.polygonCoords2),
+      ].join('|')
+
+      return avoidAreas
     },
 
     onSuccess(result, map) {
@@ -124,31 +159,17 @@ export default {
       })
     },
 
-    addPolygonToMap(map) {
+    addPolygonsToMap(map) {
       const H = window.H
-
-      // Define the coordinates of the first polygon
-      const polygonCoords1 = [
-        { lat: 40.748817, lng: -73.985428 }, // Near Times Square
-        { lat: 40.751776, lng: -73.977272 }, // Near Grand Central Terminal
-        { lat: 40.744679, lng: -73.977272 }, // Near Madison Square Park
-      ]
-
-      // Define the coordinates of the second polygon, slightly overlapping the first
-      const polygonCoords2 = [
-        { lat: 40.749817, lng: -73.984428 }, // Slightly offset from the first polygon
-        { lat: 40.752776, lng: -73.976272 },
-        { lat: 40.745679, lng: -73.976272 },
-      ]
 
       // Create LineStrings from the coordinates
       const linestring1 = new H.geo.LineString()
-      polygonCoords1.forEach(point => {
+      this.polygonCoords1.forEach(point => {
         linestring1.pushPoint(point)
       })
 
       const linestring2 = new H.geo.LineString()
-      polygonCoords2.forEach(point => {
+      this.polygonCoords2.forEach(point => {
         linestring2.pushPoint(point)
       })
 
