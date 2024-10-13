@@ -6,7 +6,9 @@
         type="text"
         v-model="searchQuery"
         @input="getSuggestions"
-        @keyup.enter="searchPlace"
+        @keydown.down.prevent="focusNextSuggestion"
+        @keydown.up.prevent="focusPreviousSuggestion"
+        @keydown.enter.prevent="selectFocusedSuggestion"
         placeholder="Search for a place"
       />
       <!-- Display suggestions if available -->
@@ -15,6 +17,7 @@
           v-for="(suggestion, index) in suggestions"
           :key="index"
           @click="selectSuggestion(suggestion)"
+          :class="{ focused: focusedSuggestionIndex === index }"
         >
           {{ suggestion.address.label }}
         </li>
@@ -76,6 +79,7 @@ export default {
       searchMarker: null, // Marker for the searched place
       apiPolygons: [], // Add this to store API polygons
       suggestions: [], // Array to store suggestions
+      focusedSuggestionIndex: -1, // Index of the focused suggestion
       // Store polygon coordinates
       polygonCoords1: [
         { lat: 40.748817, lng: -73.985428 }, // Near Times Square
@@ -97,10 +101,34 @@ export default {
     this.initializeHereMap()
   },
   methods: {
+    // Navigate to the next suggestion
+    focusNextSuggestion() {
+      if (this.suggestions.length > 0) {
+        this.focusedSuggestionIndex =
+          (this.focusedSuggestionIndex + 1) % this.suggestions.length
+      }
+    },
+
+    // Navigate to the previous suggestion
+    focusPreviousSuggestion() {
+      if (this.suggestions.length > 0) {
+        this.focusedSuggestionIndex =
+          (this.focusedSuggestionIndex - 1 + this.suggestions.length) %
+          this.suggestions.length
+      }
+    },
+
+    // Select the currently focused suggestion
+    selectFocusedSuggestion() {
+      if (this.focusedSuggestionIndex !== -1) {
+        this.selectSuggestion(this.suggestions[this.focusedSuggestionIndex])
+      }
+    },
     selectSuggestion(suggestion) {
       this.searchQuery = suggestion.address.label // Update the search bar with the selected suggestion
       this.suggestions = [] // Clear suggestions
       this.searchPlace(suggestion.position) // Perform search using the selected suggestion's position
+      this.focusedSuggestionIndex = -1 // Reset the focused suggestion index
     },
 
     async getSuggestions() {
@@ -698,6 +726,10 @@ input:checked + .slider:before {
 .suggestions li {
   padding: 10px;
   cursor: pointer;
+}
+
+.suggestions .focused {
+  background-color: #d3d3d3; /* Color to highlight the focused suggestion */
 }
 
 .suggestions li:hover {
