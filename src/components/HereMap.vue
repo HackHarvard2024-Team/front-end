@@ -80,7 +80,7 @@ export default {
       currentLocationMarker: null,
       isDarkMode: false,
       platform: null,
-      apikey: 'WkM8ySDWiaAhQq6vh6q1Wkc4HW3JRssu-PT2VzbFZ_Q', // Replace with your actual API key
+      apikey: 'WHOSPkTEgm_qFM-8asn9-PHpB75Pj6JQjYzot2OMNrw', // Replace with your actual API key
       map: null,
       ui: null,
       searchQuery: '',
