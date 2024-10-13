@@ -40,7 +40,11 @@
           <label for="startAddress">Starting Address:</label>
           <input type="text" v-model="startAddress" id="startAddress" />
           <button @click="setCurrentLocation('start')">
-            Use Current Location
+            <img
+              class="current-icon"
+              src="./assets/current.svg"
+              alt="Location"
+            />
           </button>
         </div>
         <!-- Input fields for destination address -->
@@ -48,7 +52,11 @@
           <label for="destAddress">Destination Address:</label>
           <input type="text" v-model="destAddress" id="destAddress" />
           <button @click="setCurrentLocation('dest')">
-            Use Current Location
+            <img
+              class="current-icon"
+              src="./assets/current.svg"
+              alt="Location"
+            />
           </button>
         </div>
         <!-- Transportation Mode Selection -->
@@ -339,8 +347,15 @@ export default {
 }
 
 .sidebar button {
-  margin-top: 20px;
-  padding: 10px 20px;
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.sidebar button:hover {
+  transform: scale(1.1); /* Slight zoom effect */
 }
 
 .main-content {
@@ -436,5 +451,15 @@ export default {
 
 .toggle-right .right-label {
   color: #000;
+}
+
+.current-icon {
+  width: 24px; /* Adjust size as needed */
+  height: 24px;
+  transition: transform 0.3s ease;
+}
+
+.sidebar button:hover .current-icon {
+  transform: rotate(20deg); /* Slight rotation effect on hover */
 }
 </style>
