@@ -261,7 +261,7 @@ export default {
           })
         })
       } else {
-        alert('Geolocation is not supported by your browser.')
+        // alert('Geolocation is not supported by your browser.')
       }
     },
 
@@ -458,7 +458,7 @@ export default {
     },
 
     onError(error) {
-      alert("Can't reach the remote server or no route found.")
+      // alert("Can't reach the remote server or no route found.")
       console.error(error)
     },
 
@@ -554,14 +554,14 @@ export default {
 
     async searchPlace() {
       if (!this.searchQuery) {
-        alert('Please enter a place to search.')
+        // alert('Please enter a place to search.')
         return
       }
       try {
         const position = await this.geocodeAddress(this.searchQuery)
         console.log('Search result:', position)
         if (!position) {
-          alert('Could not find the place.')
+          // alert('Could not find the place.')
           return
         }
 
@@ -582,7 +582,7 @@ export default {
         })
       } catch (error) {
         console.error('Error during search:', error)
-        alert('An error occurred during the search.')
+        // alert('An error occurred during the search.')
       }
     },
 
