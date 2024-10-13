@@ -32,6 +32,10 @@
 export default {
   name: 'HereMap',
   props: {
+    dangerLevel: {
+      type: Number,
+      default: 0, // Slider value for danger level
+    },
     center: {
       type: Object,
       default: () => ({ lat: 40.73061, lng: -73.935242 }), // Default center if not provided
@@ -106,7 +110,30 @@ export default {
         this.onError,
       )
     },
-
+    getDangerColor() {
+      switch (this.dangerLevel) {
+        case 0:
+          return { fillColor: 'rgba(0, 255, 0, 0.5)', strokeColor: 'green' } // Safe
+        case 1:
+          return {
+            fillColor: 'rgba(173, 255, 47, 0.5)',
+            strokeColor: 'yellowgreen',
+          }
+        case 2:
+          return { fillColor: 'rgba(255, 255, 0, 0.5)', strokeColor: 'yellow' }
+        case 3:
+          return { fillColor: 'rgba(255, 165, 0, 0.5)', strokeColor: 'orange' }
+        case 4:
+          return {
+            fillColor: 'rgba(255, 69, 0, 0.5)',
+            strokeColor: 'orangered',
+          }
+        case 5:
+          return { fillColor: 'rgba(255, 0, 0, 0.5)', strokeColor: 'red' } // Most dangerous
+        default:
+          return { fillColor: 'rgba(0, 255, 0, 0.5)', strokeColor: 'green' } // Default to safe
+      }
+    },
     async fetchPolygonsFromPolyline(polyline) {
       try {
         const response = await fetch(
@@ -116,6 +143,7 @@ export default {
             headers: {
               'Content-Type': 'application/json',
             },
+            // body: JSON.stringify({ polyline, dangerLevel: this.dangerLevel }),
             body: JSON.stringify({ polyline }),
           },
         )
@@ -391,10 +419,12 @@ export default {
           linestring.pushPoint({ lat: point.lat, lng: point.lon })
         })
 
+        const dangerColor = this.getDangerColor()
+
         const polygonShape = new H.map.Polygon(linestring, {
           style: {
-            fillColor: 'rgba(255, 165, 0, 0.5)', // Orange semi-transparent fill
-            strokeColor: 'orange', // Orange border
+            fillColor: dangerColor.fillColor, // Orange semi-transparent fill
+            strokeColor: dangerColor.strokeColor, // Orange border
             lineWidth: 2,
           },
         })

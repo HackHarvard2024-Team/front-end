@@ -49,6 +49,20 @@
             <option value="bus">Bus</option>
           </select>
         </div>
+
+        <!-- Slider for danger level -->
+        <div>
+          <label for="dangerLevel">Danger Level: {{ dangerLevel }}</label>
+          <input
+            type="range"
+            min="0"
+            max="5"
+            step="1"
+            v-model.number="dangerLevel"
+            id="dangerLevel"
+          />
+        </div>
+
         <!-- Submit button -->
         <button @click="submit">Submit</button>
         <!-- Display the geocoded lat/lng after submission -->
@@ -91,6 +105,7 @@
           :origin="origin"
           :destination="destination"
           :transportMode="transportMode"
+          :dangerLevel="dangerLevel"
           @route-instructions="handleRouteInstructions"
         />
       </div>
@@ -123,6 +138,7 @@ export default {
       routeInstructions: null, // Will store the route instructions and summary
       transportMode: 'car', // Default transportation mode
       unit: 'miles', // Default unit for distance
+      dangerLevel: 0, // Default danger level
       isStartCurrentLocation: false,
       isDestCurrentLocation: false,
     }
