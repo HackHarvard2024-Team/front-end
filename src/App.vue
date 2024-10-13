@@ -20,7 +20,6 @@
 
         <!-- Unit Selection with Toggle Switch -->
         <div class="toggle-switch">
-          <label>Distance Unit:</label><br />
           <div class="switch-container">
             <div
               :class="[
@@ -392,29 +391,31 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 150px;
+  width: 168px;
   height: 40px;
-  background-color: #2ecc71;
+  background-color: #2c3e50;
   border-radius: 50px;
   position: relative;
   cursor: pointer;
 }
 
 .toggle-button {
-  width: 50px;
+  width: 98px;
   height: 40px;
   background-color: #fff;
   border-radius: 50px;
   position: absolute;
   transition: transform 0.3s ease;
+  border: 1px solid #2c3e50;
 }
 
 .toggle-left .toggle-button {
   transform: translateX(0);
+  width: 70px;
 }
 
 .toggle-right .toggle-button {
-  transform: translateX(100px);
+  transform: translateX(70px);
 }
 
 .left-label,
@@ -427,6 +428,10 @@ export default {
 
 .toggle-left .left-label {
   color: #000;
+}
+
+.toggle-switch {
+  margin-top: 20px;
 }
 
 .toggle-right .right-label {
