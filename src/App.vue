@@ -36,9 +36,19 @@
         </div>
 
         <!-- Input fields for starting address -->
-        <div>
-          <label for="startAddress">Starting Address:</label>
-          <input type="text" v-model="startAddress" id="startAddress" />
+        <div class="input-container">
+          <div class="floating-label-group">
+            <input
+              type="text"
+              v-model="startAddress"
+              id="startAddress"
+              required
+              placeholder=" "
+            />
+            <label for="startAddress" class="floating-label"
+              >Starting Address</label
+            >
+          </div>
           <button @click="setCurrentLocation('start')">
             <img
               class="current-icon"
@@ -47,10 +57,21 @@
             />
           </button>
         </div>
+
         <!-- Input fields for destination address -->
-        <div>
-          <label for="destAddress">Destination Address:</label>
-          <input type="text" v-model="destAddress" id="destAddress" />
+        <div class="input-container">
+          <div class="floating-label-group">
+            <input
+              type="text"
+              v-model="destAddress"
+              id="destAddress"
+              required
+              placeholder=" "
+            />
+            <label for="destAddress" class="floating-label"
+              >Destination Address</label
+            >
+          </div>
           <button @click="setCurrentLocation('dest')">
             <img
               class="current-icon"
@@ -59,6 +80,7 @@
             />
           </button>
         </div>
+
         <!-- Transportation Mode Selection -->
         <div>
           <label for="transportMode">Transportation Mode:</label>
@@ -400,6 +422,7 @@ export default {
   justify-content: center;
   align-items: center;
   margin-top: 10px;
+  margin-bottom: 15px;
 }
 
 .toggle {
@@ -461,5 +484,54 @@ export default {
 
 .sidebar button:hover .current-icon {
   transform: rotate(20deg); /* Slight rotation effect on hover */
+}
+
+.floating-label-group {
+  position: relative;
+  margin-top: 15px;
+}
+
+.floating-label-group input {
+  width: 100%;
+  padding: 10px 5px;
+  border: none;
+  border-bottom: 1px solid #ccc;
+  background: transparent;
+  font-size: 16px;
+}
+
+.floating-label-group input:focus {
+  outline: none;
+  border-bottom: 2px solid #4285f4;
+}
+
+.floating-label-group input:focus ~ .floating-label,
+.floating-label-group input:not(:placeholder-shown) ~ .floating-label {
+  top: -20px;
+  font-size: 12px;
+  color: #4285f4;
+}
+
+.floating-label-group .floating-label {
+  position: absolute;
+  top: -1px;
+  left: 5px;
+  font-size: 16px;
+  color: #999;
+  transition: 0.2s ease all;
+}
+
+.input-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.25rem;
+  justify-content: space-evenly;
+}
+
+.current-icon {
+  width: 24px;
+  height: 24px;
+  margin-left: 10px;
+  margin-bottom: -19px;
 }
 </style>
