@@ -5,9 +5,20 @@
       <input
         type="text"
         v-model="searchQuery"
+        @input="getSuggestions"
         @keyup.enter="searchPlace"
         placeholder="Search for a place"
       />
+      <!-- Display suggestions if available -->
+      <ul v-if="suggestions.length" class="suggestions">
+        <li
+          v-for="(suggestion, index) in suggestions"
+          :key="index"
+          @click="selectSuggestion(suggestion)"
+        >
+          {{ suggestion.address.label }}
+        </li>
+      </ul>
       <button @click="searchPlace">Search</button>
       <label class="switch">
         <input type="checkbox" v-model="isDarkMode" @change="toggleMapMode" />
@@ -64,6 +75,7 @@ export default {
       searchQuery: '',
       searchMarker: null, // Marker for the searched place
       apiPolygons: [], // Add this to store API polygons
+      suggestions: [], // Array to store suggestions
       // Store polygon coordinates
       polygonCoords1: [
         { lat: 40.748817, lng: -73.985428 }, // Near Times Square
@@ -85,6 +97,29 @@ export default {
     this.initializeHereMap()
   },
   methods: {
+    selectSuggestion(suggestion) {
+      this.searchQuery = suggestion.address.label // Update the search bar with the selected suggestion
+      this.suggestions = [] // Clear suggestions
+      this.searchPlace(suggestion.position) // Perform search using the selected suggestion's position
+    },
+
+    async getSuggestions() {
+      if (!this.searchQuery) {
+        this.suggestions = []
+        return
+      }
+
+      const url = `https://autocomplete.search.hereapi.com/v1/autocomplete?q=${encodeURIComponent(this.searchQuery)}&apiKey=${this.apikey}&limit=5`
+
+      try {
+        const response = await fetch(url)
+        const data = await response.json()
+        this.suggestions = data.items // Store suggestions in array
+      } catch (error) {
+        console.error('Error fetching suggestions:', error)
+      }
+    },
+
     async recalculateRouteWithPolygons(map) {
       // This function will recalculate the route once, without recursion
       const router = this.platform.getRoutingService(null, 8) // Use version 8 of the Routing API
@@ -646,5 +681,26 @@ input:checked + .slider:before {
 .my-location-btn img {
   width: 24px;
   height: 24px;
+}
+
+.suggestions {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  background-color: white;
+  position: absolute;
+  top: 37px; /* Positioning just below the search bar */
+  width: 80%;
+  z-index: 1001;
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.suggestions li {
+  padding: 10px;
+  cursor: pointer;
+}
+
+.suggestions li:hover {
+  background-color: #f0f0f0;
 }
 </style>
