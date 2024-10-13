@@ -180,7 +180,7 @@
         </div>
 
         <!-- Slider for danger level -->
-        <div>
+        <div class="slider-container">
           <label for="dangerLevel">Danger Level: {{ dangerLevel }}</label>
           <input
             type="range"
@@ -193,7 +193,7 @@
         </div>
 
         <!-- Submit button -->
-        <button @click="submit">Submit</button>
+        <button @click="submit" id="submit-button">Submit</button>
         <!-- Display the geocoded lat/lng after submission -->
         <div v-if="startLat && startLng">
           <p><strong>Starting Coordinates:</strong></p>
@@ -674,5 +674,55 @@ div #transportation-label {
   margin-bottom: 14px;
   font-weight: 800;
   margin-top: 1.5rem;
+}
+
+/* Slider Container to extend the full width */
+.slider-container {
+  width: 100%;
+  margin-top: 20px;
+}
+
+.slider-container input[type='range'] {
+  width: 100%;
+  height: 8px;
+  -webkit-appearance: none;
+  background: #ccc;
+  outline: none;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.slider-container input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #4285f4;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.slider-container input[type='range']:hover {
+  background: #4285f4;
+}
+
+/* Submit button styling */
+button#submit-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #4285f4;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: background-color 0.3s ease;
+}
+
+button#submit-button:hover {
+  background-color: #2c3e50;
 }
 </style>
