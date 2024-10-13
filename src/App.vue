@@ -266,7 +266,7 @@ export default {
       destLng: null,
       origin: null, // Will be set when the user submits
       destination: null, // Will be set when the user submits
-      apiKey: 'x6N7wftxZkM9EGivWdhO5cVWb5chiDzaWFvAx-u3upU', // Replace with your actual HERE API key
+      apiKey: 'WkM8ySDWiaAhQq6vh6q1Wkc4HW3JRssu-PT2VzbFZ_Q', // Replace with your actual HERE API key
       routeInstructions: null, // Will store the route instructions and summary
       unit: 'miles', // Default unit for distance
       dangerLevel: 0, // Default danger level

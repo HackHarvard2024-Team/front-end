@@ -8,7 +8,7 @@
         @input="getSuggestions"
         @keydown.down.prevent="focusNextSuggestion"
         @keydown.up.prevent="focusPreviousSuggestion"
-        @keydown.enter.prevent="selectFocusedSuggestion"
+        @keydown.enter.prevent="handleEnter"
         placeholder="Search for a place"
       />
       <!-- Display suggestions if available -->
@@ -22,15 +22,19 @@
           {{ suggestion.address.label }}
         </li>
       </ul>
-      <button @click="searchPlace">Search</button>
-      <label class="switch">
-        <input type="checkbox" v-model="isDarkMode" @change="toggleMapMode" />
-        <span class="slider round"></span>
-      </label>
+      <button @click="searchPlace">
+        <img src="../assets/search-icon.svg" alt="Search" id="search-icon" />
+      </button>
     </div>
+
+    <label class="switch">
+      <input type="checkbox" v-model="isDarkMode" @change="toggleMapMode" />
+      <span class="slider round"></span>
+    </label>
+
     <!-- My Location Button -->
     <button class="my-location-btn" @click="getMyLocation">
-      <p>My Location</p>
+      <img class="current-icon" src="./assets/current.svg" alt="Location" />
       <!-- <img src="/path/to/location-icon.png" alt="My Location Icon" /> -->
     </button>
     <!-- The HERE Map will render in this div -->
@@ -72,7 +76,7 @@ export default {
       currentLocationMarker: null,
       isDarkMode: false,
       platform: null,
-      apikey: 'eGWoAInnodfZ-UvHagn1dedcuFkk3R5ws63jojRh2ZY', // Replace with your actual API key
+      apikey: 'WkM8ySDWiaAhQq6vh6q1Wkc4HW3JRssu-PT2VzbFZ_Q', // Replace with your actual API key
       map: null,
       ui: null,
       searchQuery: '',
@@ -115,6 +119,16 @@ export default {
         this.focusedSuggestionIndex =
           (this.focusedSuggestionIndex - 1 + this.suggestions.length) %
           this.suggestions.length
+      }
+    },
+
+    handleEnter() {
+      // If a suggestion is focused, select it
+      if (this.focusedSuggestionIndex !== -1) {
+        this.selectFocusedSuggestion()
+      } else {
+        // Otherwise, perform a normal search
+        this.searchPlace()
       }
     },
 
@@ -626,28 +640,80 @@ export default {
   position: absolute;
   top: 10px;
   left: 10%;
-  width: 80%;
+  width: 70%;
   display: flex;
   z-index: 1000;
+  align-items: center;
+  border-radius: 50px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  background-color: white;
 }
 
 .search-bar input {
   flex: 1;
-  padding: 8px;
-  font-size: 14px;
+  padding: 12px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 50px 0 0 50px;
+  outline: none;
+  box-sizing: border-box;
 }
 
 .search-bar button {
-  padding: 8px 16px;
-  font-size: 14px;
+  padding: 10px;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 0 50px 50px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-bar button img {
+  width: 20px;
+  height: 20px;
+}
+
+.search-bar input:focus {
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.suggestions {
+  list-style-type: none;
+  padding: 0;
+  margin: 20px;
+  background-color: white;
+  position: absolute;
+  top: 20px;
+  width: 80%;
+  z-index: 1001;
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  text-align: LEFT;
+}
+
+.suggestions li {
+  padding: 10px;
+  cursor: pointer;
+}
+
+.suggestions .focused {
+  background-color: #d3d3d3;
+}
+
+.suggestions li:hover {
+  background-color: #f0f0f0;
 }
 
 .switch {
-  position: relative;
+  position: absolute;
+  top: 10px; /* Aligns it with the search bar */
+  right: 10%; /* Places it next to the search bar on the right */
   display: inline-block;
   width: 60px;
   height: 34px;
-  margin-left: 10px;
+  z-index: 1000; /* Ensures it's above the map */
 }
 
 .switch input {
@@ -710,30 +776,5 @@ input:checked + .slider:before {
 .my-location-btn img {
   width: 24px;
   height: 24px;
-}
-
-.suggestions {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-  background-color: white;
-  position: absolute;
-  top: 37px; /* Positioning just below the search bar */
-  width: 80%;
-  z-index: 1001;
-  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-.suggestions li {
-  padding: 10px;
-  cursor: pointer;
-}
-
-.suggestions .focused {
-  background-color: #d3d3d3; /* Color to highlight the focused suggestion */
-}
-
-.suggestions li:hover {
-  background-color: #f0f0f0;
 }
 </style>
