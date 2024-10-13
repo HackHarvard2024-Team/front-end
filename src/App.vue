@@ -119,7 +119,7 @@ export default {
       destLng: null,
       origin: null, // Will be set when the user submits
       destination: null, // Will be set when the user submits
-      apiKey: 'eGWoAInnodfZ-UvHagn1dedcuFkk3R5ws63jojRh2ZY', // Replace with your actual HERE API key
+      apiKey: 'x6N7wftxZkM9EGivWdhO5cVWb5chiDzaWFvAx-u3upU', // Replace with your actual HERE API key
       routeInstructions: null, // Will store the route instructions and summary
       transportMode: 'car', // Default transportation mode
       unit: 'miles', // Default unit for distance

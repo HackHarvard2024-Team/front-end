@@ -59,6 +59,8 @@ export default {
       ui: null,
       searchQuery: '',
       searchMarker: null, // Marker for the searched place
+      apiPolygons: [], // Add this to store API polygons
+      hasRecalculatedRoute: false, // Add this to track if the route has been recalculated
       // Store polygon coordinates
       polygonCoords1: [
         { lat: 40.748817, lng: -73.985428 }, // Near Times Square
@@ -80,6 +82,26 @@ export default {
     this.initializeHereMap()
   },
   methods: {
+    async fetchPolygonsFromPolyline(polyline) {
+      try {
+        const response = await fetch(
+          'https://hackharvard.kimbo-d6c.workers.dev/',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ polyline }),
+          },
+        )
+        const polygons = await response.json()
+        return polygons
+      } catch (error) {
+        console.error('Error fetching polygons:', error)
+        return null
+      }
+    },
+
     getMyLocation() {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(position => {
@@ -175,6 +197,12 @@ export default {
     },
 
     constructAvoidAreasParameter() {
+      const formatApiPolygon = coords => {
+        return (
+          'polygon:' +
+          coords.map(point => `${point.lat},${point.lon}`).join(';')
+        )
+      }
       // Helper function to convert polygon coordinates to the required format
       const formatPolygon = coords => {
         return (
@@ -187,12 +215,19 @@ export default {
       const avoidAreas = [
         formatPolygon(this.polygonCoords1),
         formatPolygon(this.polygonCoords2),
-      ].join('|')
+      ]
 
-      return avoidAreas
+      if (this.apiPolygons && this.apiPolygons.length > 0) {
+        this.apiPolygons.forEach(apiPolygon => {
+          avoidAreas.push(formatApiPolygon(apiPolygon))
+        })
+      }
+
+      // Join all the avoid areas with '|'
+      return avoidAreas.join('|')
     },
 
-    onSuccess(result, map) {
+    async onSuccess(result, map) {
       const route = result.routes[0]
 
       // Clear previous routes and markers, but keep the search marker
@@ -218,6 +253,23 @@ export default {
       const routeData = this.extractRouteInstructions(route)
       // Emit the data to the parent component
       this.$emit('route-instructions', routeData)
+
+      // Fetch and add polygons from polyline to avoid crime areas, only if not recalculated
+      if (!this.hasRecalculatedRoute) {
+        const firstPolyline = route.sections[0].polyline
+        const polygons = await this.fetchPolygonsFromPolyline(firstPolyline)
+
+        if (polygons) {
+          this.apiPolygons = polygons // Store the polygons for future use
+          this.addPolygonsToMapFromAPI(polygons, map)
+
+          // Set the flag to true to prevent further recalculations
+          this.hasRecalculatedRoute = true
+
+          // Recalculate the route, but this time avoiding the polygons
+          this.calculateRouteFromAtoB(map)
+        }
+      }
     },
 
     extractRouteInstructions(route) {
@@ -277,6 +329,36 @@ export default {
         const startMarker = new H.map.Marker(section.departure.place.location)
         const endMarker = new H.map.Marker(section.arrival.place.location)
         map.addObjects([startMarker, endMarker])
+      })
+    },
+
+    addPolygonsToMapFromAPI(polygons, map) {
+      const H = window.H
+
+      polygons.forEach(polygon => {
+        const linestring = new H.geo.LineString()
+
+        // Check if the points are in array format [lat, lon]
+        polygon.forEach(point => {
+          if (Array.isArray(point)) {
+            // If API returns coordinates in array format [lat, lon]
+            linestring.pushPoint({ lat: point[0], lng: point[1] })
+          } else {
+            // If API returns coordinates in object format { lat: ..., lon: ... }
+            linestring.pushPoint({ lat: point.lat, lng: point.lon })
+          }
+        })
+
+        const polygonShape = new H.map.Polygon(linestring, {
+          style: {
+            fillColor: 'rgba(255, 165, 0, 0.5)', // Orange semi-transparent fill
+            strokeColor: 'orange', // Orange border
+            lineWidth: 2,
+          },
+        })
+        console.log('Polygon added:', polygonShape)
+        // Add the polygon to the map
+        map.addObject(polygonShape)
       })
     },
 
@@ -377,11 +459,13 @@ export default {
   watch: {
     origin(newOrigin) {
       if (newOrigin && this.destination && this.map) {
+        this.hasRecalculatedRoute = false // Reset flag when origin changes
         this.calculateRouteFromAtoB(this.map)
       }
     },
     destination(newDestination) {
       if (newDestination && this.origin && this.map) {
+        this.hasRecalculatedRoute = false // Reset flag when destination changes
         this.calculateRouteFromAtoB(this.map)
       }
     },
