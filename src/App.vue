@@ -11,25 +11,29 @@
             class="albatros-logo"
           />
           <div class="header-text">
-            <h2>Albatros</h2>
+            <h2>Albatross</h2>
             <p>Get home faster.</p>
             <p>Safer. Smarter</p>
           </div>
         </div>
         <h3></h3>
 
-        <!-- Unit Selection -->
-        <div>
+        <!-- Unit Selection with Toggle Switch -->
+        <div class="toggle-switch">
           <label>Distance Unit:</label><br />
-          <input type="radio" id="miles" value="miles" v-model="unit" />
-          <label for="miles">Miles</label>
-          <input
-            type="radio"
-            id="kilometers"
-            value="kilometers"
-            v-model="unit"
-          />
-          <label for="kilometers">Kilometers</label>
+          <div class="switch-container">
+            <div
+              :class="[
+                'toggle',
+                unit === 'miles' ? 'toggle-left' : 'toggle-right',
+              ]"
+              @click="toggleUnit"
+            >
+              <div class="toggle-button"></div>
+              <span class="left-label">Miles</span>
+              <span class="right-label">Kilometers</span>
+            </div>
+          </div>
         </div>
 
         <!-- Input fields for starting address -->
@@ -156,6 +160,9 @@ export default {
     }
   },
   methods: {
+    toggleUnit() {
+      this.unit = this.unit === 'miles' ? 'kilometers' : 'miles'
+    },
     setCurrentLocation(type) {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(position => {
@@ -372,5 +379,57 @@ export default {
 .logo-box {
   display: flex;
   align-items: center;
+}
+
+.switch-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 150px;
+  height: 40px;
+  background-color: #2ecc71;
+  border-radius: 50px;
+  position: relative;
+  cursor: pointer;
+}
+
+.toggle-button {
+  width: 50px;
+  height: 40px;
+  background-color: #fff;
+  border-radius: 50px;
+  position: absolute;
+  transition: transform 0.3s ease;
+}
+
+.toggle-left .toggle-button {
+  transform: translateX(0);
+}
+
+.toggle-right .toggle-button {
+  transform: translateX(100px);
+}
+
+.left-label,
+.right-label {
+  font-size: 1rem;
+  color: #fff;
+  z-index: 1;
+  padding: 0 15px;
+}
+
+.toggle-left .left-label {
+  color: #000;
+}
+
+.toggle-right .right-label {
+  color: #000;
 }
 </style>
