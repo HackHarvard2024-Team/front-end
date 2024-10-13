@@ -34,7 +34,8 @@
 
     <!-- My Location Button -->
     <button class="my-location-btn" @click="getMyLocation">
-      <img class="current-icon" src="./assets/current.svg" alt="Location" />
+      Location
+      <!-- <img class="current-icon" src="./assets/current.svg" alt="Location" /> -->
       <!-- <img src="/path/to/location-icon.png" alt="My Location Icon" /> -->
     </button>
     <!-- The HERE Map will render in this div -->
