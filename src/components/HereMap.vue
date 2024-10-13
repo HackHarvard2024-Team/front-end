@@ -60,7 +60,6 @@ export default {
       searchQuery: '',
       searchMarker: null, // Marker for the searched place
       apiPolygons: [], // Add this to store API polygons
-      hasRecalculatedRoute: false, // Add this to track if the route has been recalculated
       // Store polygon coordinates
       polygonCoords1: [
         { lat: 40.748817, lng: -73.985428 }, // Near Times Square
@@ -82,6 +81,32 @@ export default {
     this.initializeHereMap()
   },
   methods: {
+    async recalculateRouteWithPolygons(map) {
+      // This function will recalculate the route once, without recursion
+      const router = this.platform.getRoutingService(null, 8) // Use version 8 of the Routing API
+
+      // Prepare the 'avoid[areas]' parameter with the fetched polygons
+      const avoidAreas = this.constructAvoidAreasParameter()
+
+      const routeRequestParams = {
+        routingMode: 'fast',
+        transportMode: this.transportMode, // Use the selected transport mode
+        origin: `${this.origin.lat},${this.origin.lng}`, // Use this.origin
+        destination: `${this.destination.lat},${this.destination.lng}`, // Use this.destination
+        return: 'polyline,turnByTurnActions,actions,instructions,travelSummary',
+        'avoid[areas]': avoidAreas, // Avoid areas with polygons
+        polylineQuality: 'reduced', // Controls the number of points in the polyline
+      }
+
+      router.calculateRoute(
+        routeRequestParams,
+        result => {
+          this.onSuccessRecalculate(result, map) // New method for recalculation success
+        },
+        this.onError,
+      )
+    },
+
     async fetchPolygonsFromPolyline(polyline) {
       try {
         const response = await fetch(
@@ -197,17 +222,18 @@ export default {
     },
 
     constructAvoidAreasParameter() {
-      const formatApiPolygon = coords => {
-        return (
-          'polygon:' +
-          coords.map(point => `${point.lat},${point.lon}`).join(';')
-        )
-      }
       // Helper function to convert polygon coordinates to the required format
       const formatPolygon = coords => {
         return (
           'polygon:' +
           coords.map(point => `${point.lat},${point.lng}`).join(';')
+        )
+      }
+
+      const formatAPIPolygon = coords => {
+        return (
+          'polygon:' +
+          coords.map(point => `${point.lat},${point.lon}`).join(';')
         )
       }
 
@@ -219,10 +245,10 @@ export default {
 
       if (this.apiPolygons && this.apiPolygons.length > 0) {
         this.apiPolygons.forEach(apiPolygon => {
-          avoidAreas.push(formatApiPolygon(apiPolygon))
+          avoidAreas.push(formatAPIPolygon(apiPolygon))
         })
       }
-
+      console.log('Avoid areas:', avoidAreas)
       // Join all the avoid areas with '|'
       return avoidAreas.join('|')
     },
@@ -254,22 +280,47 @@ export default {
       // Emit the data to the parent component
       this.$emit('route-instructions', routeData)
 
-      // Fetch and add polygons from polyline to avoid crime areas, only if not recalculated
-      if (!this.hasRecalculatedRoute) {
-        const firstPolyline = route.sections[0].polyline
-        const polygons = await this.fetchPolygonsFromPolyline(firstPolyline)
+      // Fetch and add polygons from polyline to avoid crime areas
+      const firstPolyline = route.sections[0].polyline
+      const polygons = await this.fetchPolygonsFromPolyline(firstPolyline)
 
-        if (polygons) {
-          this.apiPolygons = polygons // Store the polygons for future use
-          this.addPolygonsToMapFromAPI(polygons, map)
+      if (polygons) {
+        this.apiPolygons = polygons // Store the polygons for future use
+        this.addPolygonsToMapFromAPI(polygons, map)
 
-          // Set the flag to true to prevent further recalculations
-          this.hasRecalculatedRoute = true
-
-          // Recalculate the route, but this time avoiding the polygons
-          this.calculateRouteFromAtoB(map)
-        }
+        this.recalculateRouteWithPolygons(map)
       }
+    },
+
+    onSuccessRecalculate(result, map) {
+      // This is a new success handler for recalculating the route once
+      const route = result.routes[0]
+
+      // Clear previous routes and markers, but keep the search marker
+      map.removeObjects(
+        map
+          .getObjects()
+          .filter(
+            obj =>
+              obj !== this.searchMarker && obj !== this.currentLocationMarker,
+          ),
+      )
+
+      // Add the polygons back to the map
+      this.addPolygonsToMap(map)
+
+      this.addPolygonsToMapFromAPI(this.apiPolygons, map)
+
+      // Add the recalculated route polyline to the map
+      this.addRouteShapeToMap(route, map)
+
+      // Optionally, add markers and other route details
+      this.addMarkersToMap(route, map)
+
+      // Extract route instructions and summary
+      const routeData = this.extractRouteInstructions(route)
+      // Emit the data to the parent component
+      this.$emit('route-instructions', routeData)
     },
 
     extractRouteInstructions(route) {
@@ -334,19 +385,10 @@ export default {
 
     addPolygonsToMapFromAPI(polygons, map) {
       const H = window.H
-
       polygons.forEach(polygon => {
         const linestring = new H.geo.LineString()
-
-        // Check if the points are in array format [lat, lon]
         polygon.forEach(point => {
-          if (Array.isArray(point)) {
-            // If API returns coordinates in array format [lat, lon]
-            linestring.pushPoint({ lat: point[0], lng: point[1] })
-          } else {
-            // If API returns coordinates in object format { lat: ..., lon: ... }
-            linestring.pushPoint({ lat: point.lat, lng: point.lon })
-          }
+          linestring.pushPoint({ lat: point.lat, lng: point.lon })
         })
 
         const polygonShape = new H.map.Polygon(linestring, {
@@ -356,7 +398,7 @@ export default {
             lineWidth: 2,
           },
         })
-        console.log('Polygon added:', polygonShape)
+
         // Add the polygon to the map
         map.addObject(polygonShape)
       })
@@ -459,13 +501,11 @@ export default {
   watch: {
     origin(newOrigin) {
       if (newOrigin && this.destination && this.map) {
-        this.hasRecalculatedRoute = false // Reset flag when origin changes
         this.calculateRouteFromAtoB(this.map)
       }
     },
     destination(newDestination) {
       if (newDestination && this.origin && this.map) {
-        this.hasRecalculatedRoute = false // Reset flag when destination changes
         this.calculateRouteFromAtoB(this.map)
       }
     },
