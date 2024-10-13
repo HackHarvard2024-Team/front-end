@@ -4,7 +4,19 @@
       <!-- Sidebar -->
       <div class="sidebar">
         <!-- Sidebar content -->
-        <h3>Sidebar</h3>
+        <div class="logo-box">
+          <img
+            src="./assets/albatross.webp"
+            alt="Albatros"
+            class="albatros-logo"
+          />
+          <div class="header-text">
+            <h2>Albatros</h2>
+            <p>Get home faster.</p>
+            <p>Safer. Smarter</p>
+          </div>
+        </div>
+        <h3></h3>
 
         <!-- Unit Selection -->
         <div>
@@ -297,7 +309,7 @@ export default {
 }
 
 .sidebar {
-  width: 300px;
+  width: 350px;
   background-color: #f8f9fa;
   padding: 20px;
   overflow-y: auto;
@@ -332,5 +344,33 @@ export default {
 
 .main-content > div {
   flex: 1;
+}
+
+.albatros-logo {
+  width: 7rem;
+  height: 7rem;
+  margin-bottom: 10px;
+}
+
+.logo-box h2 {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.header-text p {
+  font-weight: bold;
+  font-size: 1.3rem;
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+  margin-left: 20px;
+  align-items: flex-start;
+}
+
+.logo-box {
+  display: flex;
+  align-items: center;
 }
 </style>
