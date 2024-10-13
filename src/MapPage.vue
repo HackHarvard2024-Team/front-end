@@ -305,7 +305,7 @@ export default {
           }
         })
       } else {
-        alert('Geolocation is not supported by your browser.')
+        // alert('Geolocation is not supported by your browser.')
       }
     },
     async submit() {
@@ -319,7 +319,7 @@ export default {
         } else {
           const startPosition = await this.geocodeAddress(this.startAddress)
           if (!startPosition) {
-            alert('Could not geocode the starting address.')
+            // alert('Could not geocode the starting address.')
             return
           }
           this.startLat = startPosition.lat
@@ -336,7 +336,7 @@ export default {
         } else {
           const destPosition = await this.geocodeAddress(this.destAddress)
           if (!destPosition) {
-            alert('Could not geocode the destination address.')
+            // alert('Could not geocode the destination address.')
             return
           }
           this.destLat = destPosition.lat
