@@ -34,8 +34,11 @@
 
     <!-- My Location Button -->
     <button class="my-location-btn" @click="getMyLocation">
-      Location
-      <!-- <img class="current-icon" src="./assets/current.svg" alt="Location" /> -->
+      <img
+        class="current-top-icon"
+        src="../assets/current.svg"
+        alt="Location"
+      />
       <!-- <img src="/path/to/location-icon.png" alt="My Location Icon" /> -->
     </button>
     <!-- The HERE Map will render in this div -->
@@ -763,15 +766,15 @@ input:checked + .slider:before {
 
 .my-location-btn {
   position: absolute;
-  top: 10px; /* Aligns the button at the top */
-  right: 10px; /* Aligns it near the map's scroll controls */
+  top: 7px;
+  right: 37px;
   background: white;
   border: none;
-  padding: 10px;
+  padding: 8px;
   border-radius: 50%;
   box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
   cursor: pointer;
-  z-index: 1000; /* Ensures it's above the map */
+  z-index: 1000;
 }
 
 .my-location-btn img {
