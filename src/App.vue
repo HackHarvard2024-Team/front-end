@@ -82,17 +82,101 @@
         </div>
 
         <!-- Transportation Mode Selection -->
-        <div>
-          <label for="transportMode">Transportation Mode:</label>
-          <select v-model="transportMode" id="transportMode">
-            <option value="car">Car</option>
-            <option value="pedestrian">Pedestrian</option>
-            <option value="bicycle">Bicycle</option>
-            <option value="truck">Truck</option>
-            <option value="scooter">Scooter</option>
-            <option value="taxi">Taxi</option>
-            <option value="bus">Bus</option>
-          </select>
+        <div class="transport-mode-container">
+          <label id="transportation-label">Transportation Mode:</label>
+          <div class="transport-buttons">
+            <div class="transport-button-wrapper">
+              <button
+                :class="{ active: transportMode === 'car' }"
+                @click="transportMode = 'car'"
+              >
+                <img
+                  src="./assets/car-icon.svg"
+                  alt="Car"
+                  class="transport-icon"
+                />
+              </button>
+              <span class="transport-label">Car</span>
+            </div>
+            <div class="transport-button-wrapper">
+              <button
+                :class="{ active: transportMode === 'pedestrian' }"
+                @click="transportMode = 'pedestrian'"
+              >
+                <img
+                  src="./assets/pedestrian-icon.svg"
+                  alt="Pedestrian"
+                  class="transport-icon"
+                />
+              </button>
+              <span class="transport-label">Pedestrian</span>
+            </div>
+            <div class="transport-button-wrapper">
+              <button
+                :class="{ active: transportMode === 'bicycle' }"
+                @click="transportMode = 'bicycle'"
+              >
+                <img
+                  src="./assets/bicycle-icon.svg"
+                  alt="Bicycle"
+                  class="transport-icon"
+                />
+              </button>
+              <span class="transport-label">Bicycle</span>
+            </div>
+            <div class="transport-button-wrapper">
+              <button
+                :class="{ active: transportMode === 'truck' }"
+                @click="transportMode = 'truck'"
+              >
+                <img
+                  src="./assets/truck-icon.svg"
+                  alt="Truck"
+                  class="transport-icon"
+                />
+              </button>
+              <span class="transport-label">Truck</span>
+            </div>
+            <div class="transport-button-wrapper">
+              <button
+                :class="{ active: transportMode === 'scooter' }"
+                @click="transportMode = 'scooter'"
+              >
+                <img
+                  src="./assets/scooter-icon.svg"
+                  alt="Scooter"
+                  class="transport-icon"
+                />
+              </button>
+              <span class="transport-label">Scooter</span>
+            </div>
+            <div class="transport-button-wrapper">
+              <button
+                :class="{ active: transportMode === 'taxi' }"
+                @click="transportMode = 'taxi'"
+              >
+                <img
+                  src="./assets/taxi-icon.svg"
+                  alt="Taxi"
+                  class="transport-icon"
+                />
+              </button>
+              <span class="transport-label">Taxi</span>
+            </div>
+            <div class="transport-button-wrapper">
+              <button
+                :class="{ active: transportMode === 'bus' }"
+                @click="transportMode = 'bus'"
+              >
+                <img
+                  src="./assets/bus-icon.svg"
+                  alt="Bus"
+                  class="transport-icon"
+                />
+              </button>
+              <span class="transport-label">Bus</span>
+            </div>
+          </div>
         </div>
 
         <!-- Slider for danger level -->
@@ -173,6 +257,7 @@ export default {
       },
       startAddress: '',
       destAddress: '',
+      transportMode: 'car', // Default transportation mode
       startLat: null,
       startLng: null,
       destLat: null,
@@ -181,7 +266,6 @@ export default {
       destination: null, // Will be set when the user submits
       apiKey: 'x6N7wftxZkM9EGivWdhO5cVWb5chiDzaWFvAx-u3upU', // Replace with your actual HERE API key
       routeInstructions: null, // Will store the route instructions and summary
-      transportMode: 'car', // Default transportation mode
       unit: 'miles', // Default unit for distance
       dangerLevel: 0, // Default danger level
       isStartCurrentLocation: false,
@@ -533,5 +617,62 @@ export default {
   height: 24px;
   margin-left: 10px;
   margin-bottom: -19px;
+}
+.transport-mode-container {
+  margin-top: 15px;
+}
+
+.transport-buttons {
+  display: flex;
+  flex-wrap: wrap; /* Allow wrapping if there are too many buttons */
+  gap: 10px;
+}
+
+.transport-button-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 80px; /* Adjust width for buttons and labels */
+}
+
+.transport-buttons button {
+  background-color: transparent;
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  padding: 10px;
+  cursor: pointer;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.3s ease;
+}
+
+.transport-buttons button img {
+  width: 30px;
+  height: 30px;
+}
+
+.transport-buttons button.active {
+  border-color: gold; /* Highlight active button */
+}
+
+.transport-buttons button:hover {
+  border-color: #4285f4;
+}
+
+.transport-label {
+  margin-top: 5px;
+  font-size: 12px;
+  text-align: center;
+  color: #333;
+}
+
+div #transportation-label {
+  margin-left: 15px;
+  margin-bottom: 14px;
+  font-weight: 800;
+  margin-top: 1.5rem;
 }
 </style>

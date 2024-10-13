@@ -199,6 +199,7 @@ export default {
     },
     async fetchPolygonsFromPolyline(polyline) {
       try {
+        console.log(JSON.stringify({ polyline, dangerLevel: this.dangerLevel }))
         const response = await fetch(
           'https://hackharvard.kimbo-d6c.workers.dev/',
           {
@@ -206,8 +207,8 @@ export default {
             headers: {
               'Content-Type': 'application/json',
             },
-            // body: JSON.stringify({ polyline, dangerLevel: this.dangerLevel }),
-            body: JSON.stringify({ polyline }),
+            body: JSON.stringify({ polyline, dangerLevel: this.dangerLevel }),
+            // body: JSON.stringify({ polyline }),
           },
         )
         const polygons = await response.json()
