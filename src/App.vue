@@ -194,37 +194,36 @@
 
         <!-- Submit button -->
         <button @click="submit" id="submit-button">Submit</button>
-        <!-- Display the geocoded lat/lng after submission -->
-        <div v-if="startLat && startLng">
-          <p><strong>Starting Coordinates:</strong></p>
-          <p>Latitude: {{ startLat }}</p>
-          <p>Longitude: {{ startLng }}</p>
-        </div>
-        <div v-if="destLat && destLng">
-          <p><strong>Destination Coordinates:</strong></p>
-          <p>Latitude: {{ destLat }}</p>
-          <p>Longitude: {{ destLng }}</p>
-        </div>
         <!-- Display the route instructions and summary -->
-        <div v-if="routeInstructions">
-          <h4>Route Instructions:</h4>
-          <p>
-            <strong>{{ startAddress }} - {{ destAddress }}</strong>
-          </p>
-          <ol>
-            <li
+        <div v-if="routeInstructions" class="route-instructions-container">
+          <div class="route-summary">
+            <p class="travel-time">
+              {{ formatDuration(routeInstructions.totalDuration) }}
+            </p>
+            <p class="total-distance">
+              {{ formatDistance(routeInstructions.totalDistance) }}
+            </p>
+          </div>
+          <div class="instructions">
+            <div
               v-for="(item, index) in routeInstructions.instructions"
               :key="index"
+              class="instruction-item"
             >
-              {{ item.instruction }} Go for {{ formatDistance(item.distance) }}.
-            </li>
-          </ol>
-          <p>
-            <strong>Total distance:</strong>
-            {{ formatDistance(routeInstructions.totalDistance) }}.<br />
-            <strong>Travel Time:</strong>
-            {{ formatDuration(routeInstructions.totalDuration) }}.
-          </p>
+              <div class="instruction">
+                <img
+                  :src="getArrowIcon(item.instruction)"
+                  alt="Arrow Icon"
+                  class="arrow-icon"
+                />
+                <p>{{ item.instruction }}</p>
+              </div>
+              <hr
+                v-if="index !== routeInstructions.instructions.length - 1"
+                class="separator"
+              />
+            </div>
+          </div>
         </div>
       </div>
       <!-- Main content -->
@@ -243,6 +242,9 @@
 </template>
 
 <script>
+import arrowLeft from './assets/arrow-left.svg'
+import arrowRight from './assets/arrow-right.svg'
+import arrowForward from './assets/arrow-forward.svg'
 import HereMap from './components/HereMap.vue'
 export default {
   name: 'app',
@@ -273,6 +275,15 @@ export default {
     }
   },
   methods: {
+    getArrowIcon(instruction) {
+      if (instruction.toLowerCase().includes('left')) {
+        return arrowLeft
+      }
+      if (instruction.toLowerCase().includes('right')) {
+        return arrowRight
+      }
+      return arrowForward // Default icon
+    },
     toggleUnit() {
       this.unit = this.unit === 'miles' ? 'kilometers' : 'miles'
     },
@@ -616,6 +627,7 @@ export default {
   width: 24px;
   height: 24px;
   margin-left: 10px;
+
   margin-bottom: -19px;
 }
 .transport-mode-container {
@@ -724,5 +736,59 @@ button#submit-button {
 
 button#submit-button:hover {
   background-color: #2c3e50;
+}
+
+.route-instructions-container {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.route-summary {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.travel-time {
+  font-size: 24px;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.total-distance {
+  font-size: 18px;
+  font-weight: normal;
+  color: #2c3e50;
+}
+
+.instructions {
+  margin-top: 20px;
+}
+
+.instruction-item {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 0;
+}
+
+.instruction {
+  display: flex;
+  align-items: center;
+}
+
+.arrow-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+}
+
+.separator {
+  width: 100%;
+  height: 1px;
+  background-color: #ccc;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 </style>
