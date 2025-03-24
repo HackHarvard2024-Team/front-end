@@ -93,11 +93,7 @@ export default {
         { lat: 40.748817, lng: -73.985428 }, // Near Times Square
         { lat: 40.751776, lng: -73.977272 }, // Near Grand Central Terminal
         { lat: 40.744679, lng: -73.977272 }, // Near Madison Square Park
-      ],
-      polygonCoords2: [
-        { lat: 40.749817, lng: -73.984428 }, // Slightly offset from the first polygon
-        { lat: 40.752776, lng: -73.976272 },
-        { lat: 40.745679, lng: -73.976272 },
+        { lat: 40.744679, lng: -73.985428 }, // Near Penn Station
       ],
     }
   },
@@ -348,10 +344,7 @@ export default {
       }
 
       // Combine both polygons, separating them with '|'
-      const avoidAreas = [
-        formatPolygon(this.polygonCoords1),
-        formatPolygon(this.polygonCoords2),
-      ]
+      const avoidAreas = [formatPolygon(this.polygonCoords1)]
 
       if (this.apiPolygons && this.apiPolygons.length > 0) {
         this.apiPolygons.forEach(apiPolygon => {
@@ -525,11 +518,6 @@ export default {
         linestring1.pushPoint(point)
       })
 
-      const linestring2 = new H.geo.LineString()
-      this.polygonCoords2.forEach(point => {
-        linestring2.pushPoint(point)
-      })
-
       // Create the first polygon
       const polygon1 = new H.map.Polygon(linestring1, {
         style: {
@@ -539,17 +527,8 @@ export default {
         },
       })
 
-      // Create the second polygon
-      const polygon2 = new H.map.Polygon(linestring2, {
-        style: {
-          fillColor: 'rgba(0, 255, 0, 0.5)', // Semi-transparent green
-          strokeColor: 'green', // Border color
-          lineWidth: 2,
-        },
-      })
-
       // Add the polygons to the map
-      map.addObjects([polygon1, polygon2])
+      map.addObjects([polygon1])
     },
 
     async searchPlace() {
@@ -589,7 +568,6 @@ export default {
     geocodeAddress(address) {
       // Return a Promise to handle asynchronous operation
       return new Promise((resolve, reject) => {
-        const H = window.H
         const service = this.platform.getSearchService()
 
         service.geocode(
@@ -621,7 +599,7 @@ export default {
         this.calculateRouteFromAtoB(this.map)
       }
     },
-    transportMode(newMode) {
+    transportMode() {
       if (this.origin && this.destination && this.map) {
         this.calculateRouteFromAtoB(this.map)
       }
