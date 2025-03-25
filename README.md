@@ -1,6 +1,6 @@
 # Albatross Frontend
 
-![image](https://github.com/user-attachments/assets/57325307-b553-435e-967f-b73043a24650)
+![image](https://github.com/user-attachments/assets/be7b93ee-8ddd-440c-ac5c-561304122f8c)
 
 Albatross is a hackathon project designed to demonstrate how AI and real-time crime data can enhance urban safety by calculating the safest routes for navigation. Built with **Vue.js**, this frontend provides an interactive dashboard showcasing routes that avoid high-risk areas. While currently in demo mode, the project was fully functional during the hackathon and can be fully operational again by reactivating the AWS pipeline.
 
