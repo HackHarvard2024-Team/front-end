@@ -2,10 +2,24 @@
   <img src="https://github.com/user-attachments/assets/be7b93ee-8ddd-440c-ac5c-561304122f8c" alt="Albatross App Screenshot" width="800"/>
 </p>
 
-<h1 align="center">Albatross</h1>
+<h1 align="center">🦅 Albatross</h1>
 
 <p align="center">
   <strong>Get home faster. Safer. Smarter.</strong>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Built%20At-HackHarvard%202024-crimson?style=for-the-badge" alt="HackHarvard 2024"/>
+  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License"/>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Vue.js-4FC08D?style=flat-square&logo=vue.js&logoColor=white" alt="Vue.js"/>
+  <img src="https://img.shields.io/badge/Cloudflare-F38020?style=flat-square&logo=cloudflare&logoColor=white" alt="Cloudflare"/>
+  <img src="https://img.shields.io/badge/Databricks-FF3621?style=flat-square&logo=databricks&logoColor=white" alt="Databricks"/>
+  <img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"/>
+  <img src="https://img.shields.io/badge/OpenAI-412991?style=flat-square&logo=openai&logoColor=white" alt="OpenAI"/>
+  <img src="https://img.shields.io/badge/HERE-00AFAA?style=flat-square&logo=here&logoColor=white" alt="HERE Maps"/>
 </p>
 
 <p align="center">
@@ -24,7 +38,6 @@
 
 **Albatross** is an AI-powered navigation system that prioritizes your safety by calculating routes that avoid crime hot-zones. Like the albatross bird that never fails to find its way home, our application ensures you reach your destination through the safest possible path.
 
-> *"There are many ingredients that go into Smart Cities. But one that often gets forgotten amidst the great technological advancements and futuristic dreams is safety."*
 
 Traditional navigation apps optimize for distance or time. Albatross optimizes for **your safety**. By aggregating criminal history data with real-time traffic and city layout information, we provide quick, safe, and efficient routing.
 
@@ -44,14 +57,16 @@ Albatross uses machine learning to:
 
 ## Features
 
-- **Interactive Map Interface** - Beautiful, intuitive map powered by HERE Maps API
-- **Multi-Modal Transportation** - Support for car, pedestrian, bicycle, truck, scooter, taxi, and bus
-- **Adjustable Danger Sensitivity** - Customize your safety threshold with a danger level slider (0-5)
-- **Current Location Detection** - One-click access to your current position
-- **Dark Mode** - Easy on the eyes for night navigation
-- **Place Search with Autocomplete** - Quick destination finding
-- **Route Instructions** - Turn-by-turn navigation with time and distance estimates
-- **Crime Zone Visualization** - See danger zones highlighted on the map
+| Feature | Description |
+|---------|-------------|
+| **Interactive Map** | Beautiful, intuitive map powered by HERE Maps API |
+| **Multi-Modal Transport** | Car, pedestrian, bicycle, truck, scooter, taxi, and bus |
+| **Danger Sensitivity** | Customize safety threshold with danger level slider (0-5) |
+| **Current Location** | One-click access to your current position |
+| **Dark Mode** | Easy on the eyes for night navigation |
+| **Smart Search** | Place search with autocomplete |
+| **Route Instructions** | Turn-by-turn navigation with time & distance |
+| **Crime Visualization** | See danger zones highlighted on the map |
 
 ---
 
@@ -201,9 +216,9 @@ graph TD
     end
     
     subgraph Reference["Reference Embeddings"]
-        R0["Level 0: Safe<br/>hugs, smiles, joy"]
-        R1["Level 1: Low<br/>shoplifting, graffiti"]
-        R2["Level 2: High<br/>murder, rape, arson"]
+        R0["Level 0: Safe"]
+        R1["Level 1: Low"]
+        R2["Level 2: High"]
     end
     
     subgraph Output
@@ -224,37 +239,37 @@ graph TD
 
 ### Frontend
 | Technology | Purpose |
-|------------|---------|
-| Vue.js 3.x | Reactive UI Framework |
-| Vite | Fast Development Server |
-| Pinia | State Management |
-| HERE Maps SDK | Interactive Mapping |
+|:----------:|---------|
+| <img src="https://img.shields.io/badge/Vue.js-4FC08D?style=for-the-badge&logo=vue.js&logoColor=white" /> | Reactive UI Framework |
+| <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" /> | Fast Development Server |
+| <img src="https://img.shields.io/badge/Pinia-ffd859?style=for-the-badge" /> | State Management |
+| <img src="https://img.shields.io/badge/HERE-00AFAA?style=for-the-badge&logo=here&logoColor=white" /> | Interactive Mapping |
 
 ### Edge Computing
 | Technology | Purpose |
-|------------|---------|
-| Cloudflare Workers | Serverless Edge Functions |
-| JavaScript ES6+ | Worker Logic |
+|:----------:|---------|
+| <img src="https://img.shields.io/badge/Cloudflare_Workers-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" /> | Serverless Edge Functions |
+| <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" /> | Worker Logic |
 
 ### Data Processing
 | Technology | Purpose |
-|------------|---------|
-| Python 3.x | Data Analysis |
-| OpenAI Embeddings | Crime Text Embeddings |
-| scikit-learn | K-Means Clustering |
-| NumPy | Numerical Processing |
+|:----------:|---------|
+| <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" /> | Data Analysis |
+| <img src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white" /> | Crime Text Embeddings |
+| <img src="https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white" /> | K-Means Clustering |
+| <img src="https://img.shields.io/badge/NumPy-013243?style=for-the-badge&logo=numpy&logoColor=white" /> | Numerical Processing |
 
 ### Data Storage
 | Technology | Purpose |
-|------------|---------|
-| Databricks | Unified Analytics |
-| Delta Lake | ACID Data Lake |
-| Apache Spark | Distributed Computing |
-| MLflow | ML Lifecycle Management |
+|:----------:|---------|
+| <img src="https://img.shields.io/badge/Databricks-FF3621?style=for-the-badge&logo=databricks&logoColor=white" /> | Unified Analytics |
+| <img src="https://img.shields.io/badge/Delta_Lake-00ADD8?style=for-the-badge" /> | ACID Data Lake |
+| <img src="https://img.shields.io/badge/Apache_Spark-E25A1C?style=for-the-badge&logo=apache-spark&logoColor=white" /> | Distributed Computing |
+| <img src="https://img.shields.io/badge/MLflow-0194E2?style=for-the-badge&logo=mlflow&logoColor=white" /> | ML Lifecycle Management |
 
 ### APIs
 | Service | Purpose |
-|---------|---------|
+|:-------:|---------|
 | HERE Routing API | Optimal Pathfinding |
 | HERE Geocoding API | Address to Coordinates |
 | HERE Autosuggest API | Search Autocomplete |
@@ -264,14 +279,14 @@ graph TD
 
 ## Repositories
 
-This project is organized into multiple repositories for better maintainability:
+This project is organized into multiple repositories:
 
 | Repository | Description | Link |
-|------------|-------------|------|
-| **albatross-frontend** | Vue.js web application with HERE Maps integration | [View Repo](https://github.com/YOUR_USERNAME/albatross-frontend) |
-| **albatross-cloudflare** | Cloudflare Workers for edge computing and polygon intersection | [View Repo](https://github.com/YOUR_USERNAME/albatross-cloudflare) |
-| **albatross-databricks** | Scala notebooks for Databricks/Delta Lake setup | [View Repo](https://github.com/YOUR_USERNAME/albatross-databricks) |
-| **albatross-analysis** | Python scripts for crime data processing and ML | [View Repo](https://github.com/YOUR_USERNAME/albatross-analysis) |
+|:----------:|-------------|:----:|
+| **albatross-frontend** | Vue.js web application with HERE Maps integration | [![Repo](https://img.shields.io/badge/View-Repo-blue?style=flat-square&logo=github)](https://github.com/YOUR_USERNAME/albatross-frontend) |
+| **albatross-cloudflare** | Cloudflare Workers for edge computing and polygon intersection | [![Repo](https://img.shields.io/badge/View-Repo-blue?style=flat-square&logo=github)](https://github.com/YOUR_USERNAME/albatross-cloudflare) |
+| **albatross-databricks** | Scala notebooks for Databricks/Delta Lake setup | [![Repo](https://img.shields.io/badge/View-Repo-blue?style=flat-square&logo=github)](https://github.com/YOUR_USERNAME/albatross-databricks) |
+| **albatross-analysis** | Python scripts for crime data processing and ML | [![Repo](https://img.shields.io/badge/View-Repo-blue?style=flat-square&logo=github)](https://github.com/YOUR_USERNAME/albatross-analysis) |
 
 ---
 
@@ -279,12 +294,14 @@ This project is organized into multiple repositories for better maintainability:
 
 ### Prerequisites
 
-- Node.js 18+
-- Python 3.9+
-- Cloudflare Account (for Workers)
-- Databricks Account
-- HERE Developer Account
-- OpenAI API Key
+| Requirement | Version |
+|:-----------:|---------|
+| <img src="https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=node.js&logoColor=white" /> | 18+ |
+| <img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white" /> | 3.9+ |
+| <img src="https://img.shields.io/badge/Cloudflare-F38020?style=flat-square&logo=cloudflare&logoColor=white" /> | Account Required |
+| <img src="https://img.shields.io/badge/Databricks-FF3621?style=flat-square&logo=databricks&logoColor=white" /> | Account Required |
+| <img src="https://img.shields.io/badge/HERE-00AFAA?style=flat-square&logo=here&logoColor=white" /> | Developer Account |
+| <img src="https://img.shields.io/badge/OpenAI-412991?style=flat-square&logo=openai&logoColor=white" /> | API Key |
 
 ### 1. Frontend Setup
 
@@ -304,11 +321,16 @@ cp .env.example .env
 npm run dev
 ```
 
+<details>
+<summary>Configuration Details</summary>
+
 **Configuration (`src/MapPage.vue` & `src/components/HereMap.vue`):**
 ```javascript
 // Replace with your HERE API key
 apiKey: 'YOUR_HERE_API_KEY'
 ```
+
+</details>
 
 ### 2. Cloudflare Workers Setup
 
@@ -327,11 +349,17 @@ wrangler login
 wrangler deploy
 ```
 
-**Worker Files:**
-- `worker.js` - Main request handler
-- `polylineDecoder.js` - Flexible polyline decoding
-- `geometryUtils.js` - Polygon intersection algorithms
-- `polygonFetcher.js` - Databricks data fetching
+<details>
+<summary>Worker Files</summary>
+
+| File | Purpose |
+|------|---------|
+| `worker.js` | Main request handler |
+| `polylineDecoder.js` | Flexible polyline decoding |
+| `geometryUtils.js` | Polygon intersection algorithms |
+| `polygonFetcher.js` | Databricks data fetching |
+
+</details>
 
 ### 3. Data Processing Setup
 
@@ -354,7 +382,9 @@ export OPENAI_API_KEY='your-api-key'
 python analyze.py
 ```
 
-**Required Data Files:**
+<details>
+<summary>Required Data Files</summary>
+
 ```
 datafiles/
 ├── usa.geojson          # US Census block boundaries
@@ -362,6 +392,8 @@ datafiles/
 ├── crime.csv            # Additional crime data
 └── final_fast.csv       # Output: processed crime zones
 ```
+
+</details>
 
 ### 4. Databricks Setup
 
@@ -372,7 +404,9 @@ datafiles/
 3. Upload crime data CSV to DBFS
 4. Run notebooks in order
 
-**Delta Lake Schema:**
+<details>
+<summary>Delta Lake Schema</summary>
+
 ```scala
 val schema = StructType(Array(
   StructField("vertex1_lat", DoubleType),
@@ -387,38 +421,42 @@ val schema = StructType(Array(
 ))
 ```
 
+</details>
+
 ---
 
 ## How It Works
 
 ### Crime Zone Generation
 
-1. **Data Ingestion**: Crime incident data is loaded from CSV files containing addresses, crime descriptions, and timestamps.
+| Step | Process |
+|:----:|---------|
+| 1 | **Data Ingestion** - Crime data loaded from CSV files |
+| 2 | **Geocoding** - Addresses converted to coordinates via Google API |
+| 3 | **Block Assignment** - Crimes assigned to census blocks using ray-casting |
+| 4 | **Severity Scoring** - OpenAI embeddings + cosine similarity |
+| 5 | **Zone Classification** - Ranked by crime density into 5 levels |
+| 6 | **Polygon Simplification** - K-Means clustering to 4-sided N-gons |
 
-2. **Geocoding**: Addresses are converted to latitude/longitude coordinates using Google's Geocoding API.
+### Danger Levels
 
-3. **Block Assignment**: Each crime is assigned to a census block polygon using ray-casting algorithm.
-
-4. **Severity Scoring**: Crime descriptions are embedded using OpenAI's text-embedding model and compared against reference severity levels using cosine similarity.
-
-5. **Zone Classification**: Blocks are ranked by crime density (crimes per capita) and classified into 5 danger levels:
-   - **Level 5** (Top 2%): Most dangerous
-   - **Level 4** (Top 5%): Very dangerous
-   - **Level 3** (Top 10%): Dangerous
-   - **Level 2** (Top 50%): Moderate risk
-   - **Level 1** (Bottom 50%): Low risk
-
-6. **Polygon Simplification**: Complex census boundaries are simplified to 4-sided polygons (N-gons) using K-Means clustering for efficient storage and intersection testing.
+| Level | Percentile | Risk |
+|:-----:|:----------:|------|
+| **5** | Top 2% | Most dangerous |
+| **4** | Top 5% | Very dangerous |
+| **3** | Top 10% | Dangerous |
+| **2** | Top 50% | Moderate risk |
+| **1** | Bottom 50% | Low risk |
 
 ### Route Calculation
 
 1. User enters origin and destination
-2. Initial route is calculated via HERE Routing API
-3. Polyline is sent to Cloudflare Worker
-4. Worker decodes polyline and checks intersections with crime zones
-5. Matching danger zones are returned to frontend
-6. Route is recalculated with `avoid[areas]` parameter
-7. Safe route is displayed with crime zones visualized
+2. Initial route calculated via HERE Routing API
+3. Polyline sent to Cloudflare Worker
+4. Worker checks intersections with crime zones
+5. Matching danger zones returned to frontend
+6. Route recalculated with `avoid[areas]` parameter
+7. Safe route displayed with crime zones visualized
 
 ---
 
@@ -430,7 +468,7 @@ val schema = StructType(Array(
 - [ ] **Mobile Apps** - Native iOS and Android applications
 - [ ] **Community Reports** - Crowdsourced safety data
 - [ ] **Time-based Routing** - Different routes for day vs. night
-- [ ] **Integration with 911** - Emergency service coordination
+- [ ] **911 Integration** - Emergency service coordination
 
 ---
 
@@ -446,12 +484,14 @@ val schema = StructType(Array(
 
 ## What We Learned
 
-- **Databricks & Delta Lake** - Unified analytics platform and ACID transactions
-- **Cloudflare Workers** - Edge computing for low-latency processing
-- **HERE APIs** - Geo-routing and flexible polyline encoding
-- **Vue.js** - Reactive frontend development
-- **Scala & Spark** - Distributed data processing
-- **ML Embeddings** - Text similarity for crime classification
+| Technology | Learnings |
+|:----------:|-----------|
+| **Databricks & Delta Lake** | Unified analytics platform and ACID transactions |
+| **Cloudflare Workers** | Edge computing for low-latency processing |
+| **HERE APIs** | Geo-routing and flexible polyline encoding |
+| **Vue.js** | Reactive frontend development |
+| **Scala & Spark** | Distributed data processing |
+| **ML Embeddings** | Text similarity for crime classification |
 
 ---
 
@@ -459,11 +499,19 @@ val schema = StructType(Array(
 
 We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+```bash
+# 1. Fork the repository
+# 2. Create your feature branch
+git checkout -b feature/AmazingFeature
+
+# 3. Commit your changes
+git commit -m 'Add some AmazingFeature'
+
+# 4. Push to the branch
+git push origin feature/AmazingFeature
+
+# 5. Open a Pull Request
+```
 
 ---
 
@@ -475,25 +523,50 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Team
 
-Built with love at HackHarvard 2024
+<p align="center">
+  <strong>HackHarvard 2024</strong>
+</p>
 
-<!-- Add team member info here -->
-
-| Name | Role | GitHub |
-|------|------|--------|
-| Shahir Ahmed | Full Stack | [@Shahir-47](https://github.com/Shahir-47) |
-| Boosung Kim | Full Stack | [@boosungkim](https://github.com/boosungkim) |
-| Jordan Zedeck | Full Stack | [@zedeckj](https://github.com/zedeckj) |
+<table align="center">
+  <tr>
+    <td align="center">
+      <a href="https://github.com/Shahir-47">
+        <img src="https://github.com/Shahir-47.png" width="100px;" alt="Shahir Ahmed"/><br />
+        <sub><b>Shahir Ahmed</b></sub>
+      </a><br />
+      <sub>Full Stack</sub>
+    </td>
+    <td align="center">
+      <a href="https://github.com/boosungkim">
+        <img src="https://github.com/boosungkim.png" width="100px;" alt="Boosung Kim"/><br />
+        <sub><b>Boosung Kim</b></sub>
+      </a><br />
+      <sub>Full Stack</sub>
+    </td>
+    <td align="center">
+      <a href="https://github.com/zedeckj">
+        <img src="https://github.com/zedeckj.png" width="100px;" alt="Jordan Zedeck"/><br />
+        <sub><b>Jordan Zedeck</b></sub>
+      </a><br />
+      <sub>Full Stack</sub>
+    </td>
+  </tr>
+</table>
 
 ---
 
 ## Acknowledgments
 
-- [HERE Technologies](https://developer.here.com/) for mapping APIs
-- [Databricks](https://databricks.com/) for data platform
-- [Cloudflare](https://workers.cloudflare.com/) for edge computing
-- [OpenAI](https://openai.com/) for embeddings API
-- Boston Police Department for open crime data
+<p align="center">
+  <a href="https://developer.here.com/"><img src="https://img.shields.io/badge/HERE-00AFAA?style=for-the-badge&logo=here&logoColor=white" alt="HERE"/></a>
+  <a href="https://databricks.com/"><img src="https://img.shields.io/badge/Databricks-FF3621?style=for-the-badge&logo=databricks&logoColor=white" alt="Databricks"/></a>
+  <a href="https://workers.cloudflare.com/"><img src="https://img.shields.io/badge/Cloudflare-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Cloudflare"/></a>
+  <a href="https://openai.com/"><img src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI"/></a>
+</p>
+
+<p align="center">
+  Special thanks to <strong>Boston Police Department</strong> for open crime data
+</p>
 
 ---
 
@@ -502,7 +575,7 @@ Built with love at HackHarvard 2024
 </p>
 
 <p align="center">
-  <a href="https://devpost.com/software/albatross">View on Devpost</a> &bull;
-  <a href="#getting-started">Get Started</a> &bull;
-  <a href="https://github.com/YOUR_USERNAME/albatross-frontend/issues">Report Bug</a>
+  <a href="https://devpost.com/software/albatross"><img src="https://img.shields.io/badge/View_on-Devpost-003E54?style=for-the-badge&logo=devpost&logoColor=white" alt="Devpost"/></a>
+  <a href="#getting-started"><img src="https://img.shields.io/badge/Get-Started-green?style=for-the-badge" alt="Get Started"/></a>
+  <a href="https://github.com/YOUR_USERNAME/albatross-frontend/issues"><img src="https://img.shields.io/badge/Report-Bug-red?style=for-the-badge&logo=github" alt="Report Bug"/></a>
 </p>
