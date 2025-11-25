@@ -481,7 +481,6 @@ Built with love at HackHarvard 2024
 
 | Name | Role | GitHub |
 |------|------|--------|
-| Your Name | Full Stack | [@username](https://github.com/username) |
 | Shahir Ahmed | Full Stack | [@Shahir-47](https://github.com/Shahir-47) |
 | Boosung Kim | Full Stack | [@boosungkim](https://github.com/boosungkim) |
 | Jordan Zedeck | Full Stack | [@zedeckj](https://github.com/zedeckj) |
