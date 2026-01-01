@@ -53,7 +53,7 @@
         </div>
         <div class="legend-tip-item">
           <span class="legend-icon legend-icon-city">B</span>
-          <span>Currently focused on Boston data</span>
+            <span>Currently operational in Boston. More cities coming soon!</span>
         </div>
         <div class="legend-tip-item">
           <span class="legend-icon legend-icon-warning">!</span>

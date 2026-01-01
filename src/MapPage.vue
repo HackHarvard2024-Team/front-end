@@ -237,7 +237,11 @@
           </button>
         </div>
         <!-- Display the route instructions and summary -->
-        <div v-if="routeInstructions" class="route-instructions-container">
+        <div
+          v-if="routeInstructions"
+          ref="routeInstructions"
+          class="route-instructions-container"
+        >
           <div class="route-summary">
             <p class="travel-time">
               {{ formatDuration(routeInstructions.totalDuration) }}
@@ -495,6 +499,12 @@ export default {
     },
     handleRouteInstructions(routeData) {
       this.routeInstructions = routeData
+      this.$nextTick(() => {
+        const el = this.$refs.routeInstructions
+        if (el && typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      })
     },
     formatDuration(duration) {
       const pluralize = (value, label) =>
