@@ -35,6 +35,26 @@
           </div>
         </div>
 
+        <div class="city-toggle">
+          <div class="city-toggle-label">City</div>
+          <div class="city-toggle-buttons">
+            <button
+              type="button"
+              :class="{ active: activeCity === 'boston' }"
+              @click="setCity('boston')"
+            >
+              Boston
+            </button>
+            <button
+              type="button"
+              :class="{ active: activeCity === 'chicago' }"
+              @click="setCity('chicago')"
+            >
+              Chicago
+            </button>
+          </div>
+        </div>
+
         <!-- Input fields for starting address -->
         <div class="input-container">
           <div class="floating-label-group">
@@ -281,6 +301,7 @@
           :destination="destination"
           :transportMode="transportMode"
           :dangerLevel="dangerLevel"
+          :city="activeCity"
           @route-instructions="handleRouteInstructions"
           @origin-updated="handleOriginUpdated"
           @destination-updated="handleDestinationUpdated"
@@ -313,6 +334,11 @@ export default {
   },
   data() {
     return {
+      activeCity: 'boston',
+      cityCenters: {
+        boston: { lat: 42.3601, lng: -71.0589 },
+        chicago: { lat: 41.8781, lng: -87.6298 },
+      },
       center: {
         lat: 42.3601,
         lng: -71.0589,
@@ -328,7 +354,7 @@ export default {
       destination: null, // Will be set when the user submits
       routeInstructions: null, // Will store the route instructions and summary
       unit: 'miles', // Default unit for distance
-      dangerLevel: 3, // Default danger level
+      dangerLevel: 4, // Default danger level
       pinTooltip: {
         visible: false,
         text: '',
@@ -351,6 +377,17 @@ export default {
     },
     toggleUnit() {
       this.unit = this.unit === 'miles' ? 'kilometers' : 'miles'
+    },
+    setCity(city) {
+      if (!city || city === this.activeCity) {
+        return
+      }
+      this.activeCity = city
+      const center = this.cityCenters[city]
+      if (center) {
+        this.center = { ...center }
+      }
+      this.clearRoute()
     },
     handlePinDragStart(type, event) {
       if (!event?.dataTransfer) {
@@ -703,6 +740,51 @@ export default {
 
 .toggle-right .right-label {
   color: #000;
+}
+
+.city-toggle {
+  margin-top: 12px;
+}
+
+.city-toggle-label {
+  margin-left: 15px;
+  margin-bottom: 8px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+
+.city-toggle-buttons {
+  display: flex;
+  gap: 8px;
+  padding: 0 6px;
+}
+
+.city-toggle-buttons button {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0f172a;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.city-toggle-buttons button:hover {
+  transform: none;
+  border-color: #94a3b8;
+}
+
+.city-toggle-buttons button.active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #fff;
 }
 
 .floating-label-group {
