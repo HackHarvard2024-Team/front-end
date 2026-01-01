@@ -54,12 +54,14 @@
             class="pin-button pin-button-start"
             draggable="true"
             @dragstart="handlePinDragStart('origin', $event)"
+            @mouseenter="showPinTooltip('origin', $event)"
+            @mouseleave="hidePinTooltip()"
+            @click="showPinTooltip('origin', $event, true)"
             aria-label="Drag start pin to map"
-            title="Drag start pin to map"
           >
             <svg
               class="pin-icon"
-              viewBox="0 0 24 32"
+              viewBox="0 0 24 24"
               aria-hidden="true"
               focusable="false"
             >
@@ -91,12 +93,14 @@
             class="pin-button pin-button-dest"
             draggable="true"
             @dragstart="handlePinDragStart('destination', $event)"
+            @mouseenter="showPinTooltip('destination', $event)"
+            @mouseleave="hidePinTooltip()"
+            @click="showPinTooltip('destination', $event, true)"
             aria-label="Drag destination pin to map"
-            title="Drag destination pin to map"
           >
             <svg
               class="pin-icon"
-              viewBox="0 0 24 32"
+              viewBox="0 0 24 24"
               aria-hidden="true"
               focusable="false"
             >
@@ -279,6 +283,17 @@
         />
       </div>
     </div>
+    <div
+      v-if="pinTooltip.visible"
+      class="pin-tooltip-overlay"
+      role="tooltip"
+      :style="{
+        left: `${pinTooltip.x}px`,
+        top: `${pinTooltip.y}px`,
+      }"
+    >
+      {{ pinTooltip.text }}
+    </div>
   </div>
 </template>
 
@@ -310,6 +325,14 @@ export default {
       routeInstructions: null, // Will store the route instructions and summary
       unit: 'miles', // Default unit for distance
       dangerLevel: 3, // Default danger level
+      pinTooltip: {
+        visible: false,
+        text: '',
+        x: 0,
+        y: 0,
+      },
+      pinTooltipPinned: false,
+      pinTooltipTimeout: null,
     }
   },
   methods: {
@@ -329,10 +352,76 @@ export default {
       if (!event?.dataTransfer) {
         return
       }
+      this.hidePinTooltip(true)
       event.dataTransfer.setData('text/plain', type)
       event.dataTransfer.effectAllowed = 'copy'
-      if (event.dataTransfer.setDragImage && event.currentTarget) {
-        event.dataTransfer.setDragImage(event.currentTarget, 16, 16)
+      if (event.dataTransfer.setDragImage) {
+        const color = type === 'origin' ? '#2563eb' : '#dc2626'
+        const ghost = document.createElement('div')
+        ghost.style.position = 'absolute'
+        ghost.style.top = '-1000px'
+        ghost.style.left = '-1000px'
+        ghost.style.width = '24px'
+        ghost.style.height = '32px'
+        ghost.style.background = 'transparent'
+        ghost.style.pointerEvents = 'none'
+        ghost.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="32" viewBox="0 0 24 32">
+          <path d="M12 0C7.58 0 4 3.58 4 8c0 5.33 6.7 12.5 7.16 12.99L12 22l.84-1.01C13.3 20.5 20 13.33 20 8c0-4.42-3.58-8-8-8z" fill="${color}"/>
+          <circle cx="12" cy="8.5" r="4" fill="#fff"/>
+        </svg>`
+        document.body.appendChild(ghost)
+        event.dataTransfer.setDragImage(ghost, 12, 16)
+        setTimeout(() => {
+          ghost.remove()
+        }, 0)
+      }
+    },
+    showPinTooltip(type, event, persist = false) {
+      const target = event?.currentTarget
+      if (!target) {
+        return
+      }
+      const rect = target.getBoundingClientRect()
+      const anchorX = rect.left + rect.width / 2
+      const anchorY = rect.top - 10
+      const padding = 12
+      const clampedX = Math.min(
+        window.innerWidth - padding,
+        Math.max(padding, anchorX),
+      )
+      this.pinTooltip = {
+        visible: true,
+        text:
+          type === 'origin'
+            ? 'Drag this pin onto the map to set your start point.'
+            : 'Drag this pin onto the map to set your destination.',
+        x: clampedX,
+        y: anchorY,
+      }
+
+      if (persist) {
+        this.pinTooltipPinned = true
+        if (this.pinTooltipTimeout) {
+          clearTimeout(this.pinTooltipTimeout)
+        }
+        this.pinTooltipTimeout = setTimeout(() => {
+          this.pinTooltipPinned = false
+          this.hidePinTooltip(true)
+        }, 2400)
+      } else {
+        this.pinTooltipPinned = false
+      }
+    },
+    hidePinTooltip(force = false) {
+      if (this.pinTooltipTimeout && force) {
+        clearTimeout(this.pinTooltipTimeout)
+        this.pinTooltipTimeout = null
+      }
+      if (force) {
+        this.pinTooltipPinned = false
+      }
+      if (!this.pinTooltipPinned || force) {
+        this.pinTooltip.visible = false
       }
     },
     handleOriginUpdated(position) {
@@ -476,6 +565,9 @@ export default {
   background-color: #f8f9fa;
   padding: 20px;
   overflow-y: auto;
+  overflow-x: visible;
+  position: relative;
+  z-index: 2;
   text-align: left;
 }
 
@@ -640,7 +732,7 @@ export default {
 
 .input-container {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 8px;
   margin-bottom: 0.25rem;
 }
@@ -660,6 +752,9 @@ export default {
   justify-content: center;
   padding: 0;
   cursor: grab;
+  line-height: 0;
+  position: relative;
+  overflow: visible;
 }
 
 .sidebar .pin-button:hover {
@@ -683,6 +778,76 @@ export default {
 .pin-icon {
   width: 16px;
   height: 20px;
+  display: block;
+}
+
+.pin-tooltip-overlay {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  background: #0f172a;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.3;
+  padding: 6px 8px;
+  border-radius: 8px;
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.2);
+  pointer-events: none;
+  max-width: 220px;
+  text-align: center;
+  z-index: 2000;
+}
+
+.pin-tooltip-overlay::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+  border-width: 6px 6px 0;
+  border-style: solid;
+  border-color: #0f172a transparent transparent;
+}
+
+.pin-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.pin-hint-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.pin-hint-row:first-child {
+  margin-top: 0;
+}
+
+.pin-hint-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #0f172a;
+  background: #e2e8f0;
+  flex: 0 0 auto;
+}
+
+.pin-hint-icon-start {
+  background: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.pin-hint-icon-dest {
+  background: #fecaca;
+  color: #b91c1c;
 }
 .transport-mode-container {
   margin-top: 15px;
@@ -823,7 +988,9 @@ button#submit-button:hover {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 #clear-route-button:hover:not(:disabled) {
