@@ -170,7 +170,7 @@ export default {
 
     async recalculateRouteWithPolygons(map) {
       // This function will recalculate the route once, without recursion
-      const router = this.platform.getRoutingService(null, 8) // Use version 8 of the Routing API
+      const router = this.platform.getRoutingService() // Use the latest Routing API
 
       // Prepare the 'avoid[areas]' parameter with the fetched polygons
       const avoidAreas = this.constructAvoidAreasParameter()
@@ -312,7 +312,7 @@ export default {
     },
 
     calculateRouteFromAtoB(map) {
-      const router = this.platform.getRoutingService(null, 8) // Use version 8 of the Routing API
+      const router = this.platform.getRoutingService() // Use the latest Routing API
 
       // Prepare the 'avoid[areas]' parameter
       const avoidAreas = this.constructAvoidAreasParameter()
@@ -497,14 +497,15 @@ export default {
     addPolygonsToMapFromAPI(polygons, map) {
       const H = window.H
       polygons.forEach(polygon => {
-        const linestring = new H.geo.LineString()
-        polygon.forEach(point => {
-          linestring.pushPoint({ lat: point.lat, lng: point.lon })
-        })
+        const points = polygon.map(point => ({
+          lat: point.lat,
+          lng: point.lon,
+        }))
+        const polygonGeometry = this.buildPolygonGeometry(points)
 
         const dangerColor = this.getDangerColor()
 
-        const polygonShape = new H.map.Polygon(linestring, {
+        const polygonShape = new H.map.Polygon(polygonGeometry, {
           style: {
             fillColor: dangerColor.fillColor, // Orange semi-transparent fill
             strokeColor: dangerColor.strokeColor, // Orange border
@@ -519,15 +520,10 @@ export default {
 
     addPolygonsToMap(map) {
       const H = window.H
-
-      // Create LineStrings from the coordinates
-      const linestring1 = new H.geo.LineString()
-      this.polygonCoords1.forEach(point => {
-        linestring1.pushPoint(point)
-      })
+      const polygonGeometry1 = this.buildPolygonGeometry(this.polygonCoords1)
 
       // Create the first polygon
-      const polygon1 = new H.map.Polygon(linestring1, {
+      const polygon1 = new H.map.Polygon(polygonGeometry1, {
         style: {
           fillColor: 'rgba(255, 0, 0, 0.5)', // Semi-transparent red
           strokeColor: 'red', // Border color
@@ -537,6 +533,26 @@ export default {
 
       // Add the polygons to the map
       map.addObjects([polygon1])
+    },
+    buildPolygonGeometry(points) {
+      const H = window.H
+      const linestring = new H.geo.LineString()
+      points.forEach(point => {
+        linestring.pushPoint(point)
+      })
+
+      if (points.length > 0) {
+        const firstPoint = points[0]
+        const lastPoint = points[points.length - 1]
+        if (
+          firstPoint.lat !== lastPoint.lat ||
+          firstPoint.lng !== lastPoint.lng
+        ) {
+          linestring.pushPoint(firstPoint)
+        }
+      }
+
+      return new H.geo.Polygon(linestring)
     },
 
     async searchPlace() {
