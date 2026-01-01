@@ -142,6 +142,8 @@ export default {
       endpointIcons: {},
       markerDragHandlersReady: false,
       dropHandlersReady: false,
+      isMarkerDragActive: false,
+      globalDragEndHandler: null,
       activeInfoBubble: null,
       bostonUpdateHandle: null,
       legendLevels: BOSTON_DANGER_LEVELS,
@@ -665,6 +667,7 @@ export default {
         if (!data?.kind) {
           return
         }
+        this.isMarkerDragActive = true
         const screenPos = map.geoToScreen(target.getGeometry())
         target.setData({
           ...data,
@@ -709,6 +712,7 @@ export default {
           this.behavior.enable()
         }
         this.enableMapDragging()
+        this.isMarkerDragActive = false
         const position = target.getGeometry()
         if (position && data.kind) {
           this.emitEndpointUpdate(data.kind, position)
@@ -717,6 +721,26 @@ export default {
       })
 
       this.markerDragHandlersReady = true
+      this.setupGlobalDragEndHandler()
+    },
+
+    setupGlobalDragEndHandler() {
+      if (this.globalDragEndHandler) {
+        return
+      }
+      this.globalDragEndHandler = () => {
+        if (!this.isMarkerDragActive) {
+          return
+        }
+        this.isMarkerDragActive = false
+        if (this.behavior && typeof this.behavior.enable === 'function') {
+          this.behavior.enable()
+        }
+        this.enableMapDragging()
+      }
+      window.addEventListener('mouseup', this.globalDragEndHandler)
+      window.addEventListener('touchend', this.globalDragEndHandler)
+      window.addEventListener('touchcancel', this.globalDragEndHandler)
     },
 
     setupDropTargets() {
@@ -1366,6 +1390,9 @@ export default {
       // Adjust map viewport on window resize
       window.addEventListener('resize', () => map.getViewPort().resize())
       map.addEventListener('mapviewchangeend', () => {
+        if (!this.isMarkerDragActive) {
+          this.enableMapDragging()
+        }
         if (!this.hasMapRendered) {
           this.hasMapRendered = true
           this.isMapLoading = false
