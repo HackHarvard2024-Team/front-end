@@ -77,32 +77,13 @@
 const NYC_CRIME_PAGE_SIZE = 1000
 const CRIME_POLYGON_RADIUS_METERS = 35
 const METERS_PER_DEGREE_LAT = 111320
-const BOSTON_CSV_URL = new URL('../assets/boston.csv', import.meta.url).href
-const BOSTON_CSV_ROW_LIMIT = 20000
 const BOSTON_VIEW_PADDING_RATIO = 0.15
-const BOSTON_CLUSTER_RADIUS_MIN_METERS = 35
-const BOSTON_CLUSTER_RADIUS_MAX_METERS = 140
-const BOSTON_CLUSTER_RADIUS_BASE_METERS = 70
-const BOSTON_CLUSTER_ZOOM_REFERENCE = 14
-const BOSTON_CLUSTER_ZOOM_SCALE = 1.2
-const BOSTON_CLUSTER_MAX_POINTS = 6000
-const BOSTON_CLUSTER_MIN_POINTS = 1
-const BOSTON_CLUSTER_EXPANSION_MAX = 0.1
-const BOSTON_CLUSTER_SMALL_POLY_SIDES = 6
-const BOSTON_CLUSTER_TOP_OFFENSE_LIMIT = 4
-const BOSTON_CLUSTER_SAMPLE_LIMIT = 8
-const DEFAULT_MAP_ZOOM = 14
 const BOSTON_DANGER_LEVELS = [
   { level: 1, label: 'Low', rgb: '34,197,94' },
   { level: 2, label: 'Guarded', rgb: '132,204,22' },
   { level: 3, label: 'Elevated', rgb: '234,179,8' },
   { level: 4, label: 'High', rgb: '249,115,22' },
   { level: 5, label: 'Severe', rgb: '239,68,68' },
-]
-const BOSTON_EXCLUDED_KEYWORDS = [
-  'INVESTIGATE PERSON',
-  'INVESTIGATE PROPERTY',
-  'VERBAL DISPUTE',
 ]
 
 export default {
@@ -139,15 +120,15 @@ export default {
       ui: null,
       isMapLoading: true,
       hasMapRendered: false,
-      hasAppliedInitialView: false,
       searchQuery: '',
       searchMarker: null, // Marker for the searched place
       apiPolygons: [], // Add this to store API polygons
       crimePolygons: [],
       crimePolygonsLoading: false,
-      bostonPoints: [],
       bostonPolygonObjects: [],
       bostonPolygonsLoading: false,
+      bostonRequestId: 0,
+      bostonDetailCache: new Map(),
       activeInfoBubble: null,
       bostonUpdateHandle: null,
       legendLevels: BOSTON_DANGER_LEVELS,
@@ -175,7 +156,6 @@ export default {
     })
     this.initializeHereMap()
     this.loadCrimePolygons()
-    this.loadBostonPoints()
   },
   methods: {
     async fetchHereApiKey() {
@@ -190,24 +170,6 @@ export default {
         console.error('Error loading HERE API key:', error)
         this.apikey = null
       }
-    },
-    applyInitialView(force = false) {
-      if (!this.map) {
-        return
-      }
-      if (this.hasAppliedInitialView && !force) {
-        return
-      }
-      const center =
-        this.center &&
-        Number.isFinite(this.center.lat) &&
-        Number.isFinite(this.center.lng)
-          ? this.center
-          : { lat: 42.3601, lng: -71.0589 }
-      this.map
-        .getViewModel()
-        .setLookAtData({ position: center, zoom: DEFAULT_MAP_ZOOM }, true)
-      this.hasAppliedInitialView = true
     },
     // Navigate to the next suggestion
     focusNextSuggestion() {
@@ -354,195 +316,8 @@ export default {
       })
     },
 
-    async loadBostonPoints() {
-      if (this.bostonPolygonsLoading || this.bostonPoints.length > 0) {
-        return
-      }
-      this.bostonPolygonsLoading = true
-      try {
-        const response = await fetch(BOSTON_CSV_URL)
-        if (!response.ok) {
-          throw new Error(`Boston CSV fetch failed: ${response.status}`)
-        }
-        const csvText = await response.text()
-        const points = this.parseBostonCsvPoints(csvText, BOSTON_CSV_ROW_LIMIT)
-        this.bostonPoints = points
-        this.scheduleBostonUpdate()
-      } catch (error) {
-        console.error('Error loading Boston crime CSV:', error)
-      } finally {
-        this.bostonPolygonsLoading = false
-      }
-    },
-
-    parseBostonCsvPoints(csvText, limit) {
-      const points = []
-      let row = []
-      let field = ''
-      let inQuotes = false
-      let rowIndex = 0
-      let latIndex = -1
-      let lngIndex = -1
-      let offenseCodeIndex = -1
-      let offenseGroupIndex = -1
-      let offenseDescriptionIndex = -1
-      let occurredOnDateIndex = -1
-      let shootingIndex = -1
-      let ucrPartIndex = -1
-
-      const normalizeHeader = value =>
-        value
-          .trim()
-          .replace(/^\uFEFF/, '')
-          .toLowerCase()
-
-      const processRow = () => {
-        if (rowIndex === 0) {
-          row.forEach((value, index) => {
-            const header = normalizeHeader(value)
-            if (header === 'lat' || header === 'latitude') {
-              latIndex = index
-            }
-            if (
-              header === 'long' ||
-              header === 'lng' ||
-              header === 'longitude'
-            ) {
-              lngIndex = index
-            }
-            if (header === 'offense_code') {
-              offenseCodeIndex = index
-            }
-            if (header === 'offense_code_group') {
-              offenseGroupIndex = index
-            }
-            if (header === 'offense_description') {
-              offenseDescriptionIndex = index
-            }
-            if (header === 'occurred_on_date') {
-              occurredOnDateIndex = index
-            }
-            if (header === 'shooting') {
-              shootingIndex = index
-            }
-            if (header === 'ucr_part') {
-              ucrPartIndex = index
-            }
-          })
-          rowIndex += 1
-          row = []
-          return
-        }
-
-        if (latIndex === -1 || lngIndex === -1) {
-          rowIndex += 1
-          row = []
-          return
-        }
-
-        if (points.length < limit) {
-          const latValue = row[latIndex]?.trim()
-          const lngValue = row[lngIndex]?.trim()
-          const lat = Number.parseFloat(latValue)
-          const lng = Number.parseFloat(lngValue)
-          if (Number.isFinite(lat) && Number.isFinite(lng)) {
-            const offenseCode = row[offenseCodeIndex]?.trim()
-            const offenseGroup = row[offenseGroupIndex]?.trim()
-            const offenseDescription = row[offenseDescriptionIndex]?.trim()
-            const occurredOnDate = row[occurredOnDateIndex]?.trim()
-            const shooting = row[shootingIndex]?.trim()
-            const ucrPart = row[ucrPartIndex]?.trim()
-
-            if (
-              this.isExcludedOffense(offenseDescription, offenseGroup, ucrPart)
-            ) {
-              rowIndex += 1
-              row = []
-              return
-            }
-
-            const dangerLevel = this.getDangerLevelForOffense({
-              offenseDescription,
-              offenseGroup,
-              offenseCode,
-              shooting,
-              ucrPart,
-            })
-
-            points.push({
-              lat,
-              lng,
-              offenseCode: offenseCode || 'N/A',
-              offenseDescription:
-                offenseDescription || offenseGroup || 'Unknown offense',
-              offenseGroup: offenseGroup || '',
-              occurredOnDate: occurredOnDate || '',
-              shooting: shooting || '',
-              ucrPart: ucrPart || '',
-              dangerLevel,
-            })
-          }
-        }
-
-        rowIndex += 1
-        row = []
-      }
-
-      for (let i = 0; i < csvText.length; i += 1) {
-        const char = csvText[i]
-
-        if (inQuotes) {
-          if (char === '"') {
-            if (csvText[i + 1] === '"') {
-              field += '"'
-              i += 1
-            } else {
-              inQuotes = false
-            }
-          } else {
-            field += char
-          }
-          continue
-        }
-
-        if (char === '"') {
-          inQuotes = true
-          continue
-        }
-
-        if (char === ',') {
-          row.push(field)
-          field = ''
-          continue
-        }
-
-        if (char === '\n') {
-          row.push(field)
-          field = ''
-          processRow()
-          if (points.length >= limit) {
-            return points
-          }
-          continue
-        }
-
-        if (char === '\r') {
-          continue
-        }
-
-        field += char
-      }
-
-      if (field.length > 0 || row.length > 0) {
-        row.push(field)
-        processRow()
-      }
-
-      return points
-    },
-
-    updateBostonPolygonsInView() {
-      if (!this.map || this.bostonPoints.length === 0) {
+    async updateBostonPolygonsInView() {
+      if (!this.map) {
         return
       }
       const bounds = this.getMapBounds()
@@ -553,26 +328,53 @@ export default {
       if (!expanded) {
         return
       }
-      const visiblePoints = this.filterPointsInBounds(
-        this.bostonPoints,
-        expanded,
-        BOSTON_CLUSTER_MAX_POINTS,
-      )
-      const threshold = this.getDangerThreshold()
-      const filteredPoints = visiblePoints.filter(
-        point => point.dangerLevel >= threshold,
-      )
       const zoom = this.map?.getZoom?.()
-      const radiusMeters = this.getBostonClusterRadiusMeters(
-        Number.isFinite(zoom) ? zoom : BOSTON_CLUSTER_ZOOM_REFERENCE,
+      const threshold = this.getDangerThreshold()
+      const requestId = this.bostonRequestId + 1
+      this.bostonRequestId = requestId
+      this.bostonPolygonsLoading = true
+
+      try {
+        const payload = await this.fetchBostonClusters(
+          expanded,
+          Number.isFinite(zoom) ? zoom : null,
+          threshold,
+        )
+        if (requestId !== this.bostonRequestId) {
+          return
+        }
+        this.bostonDetailContext = payload?.context || null
+        const clusters = Array.isArray(payload?.clusters)
+          ? payload.clusters
+          : []
+        this.renderBostonClusters(clusters, payload?.maxCount)
+      } catch (error) {
+        console.error('Error loading Boston clusters:', error)
+      } finally {
+        if (requestId === this.bostonRequestId) {
+          this.bostonPolygonsLoading = false
+        }
+      }
+    },
+
+    async fetchBostonClusters(bounds, zoom, dangerLevel) {
+      const params = new URLSearchParams({
+        north: String(bounds.north),
+        south: String(bounds.south),
+        east: String(bounds.east),
+        west: String(bounds.west),
+        dangerLevel: String(dangerLevel),
+      })
+      if (Number.isFinite(zoom)) {
+        params.set('zoom', String(zoom))
+      }
+      const response = await fetch(
+        `/.netlify/functions/boston-clusters?${params.toString()}`,
       )
-      const centerLat = (expanded.north + expanded.south) / 2
-      const clusters = this.clusterBostonPoints(
-        filteredPoints,
-        radiusMeters,
-        centerLat,
-      )
-      this.renderBostonClusters(clusters, radiusMeters)
+      if (!response.ok) {
+        throw new Error(`Boston clusters fetch failed: ${response.status}`)
+      }
+      return response.json()
     },
 
     getMapBounds() {
@@ -731,25 +533,6 @@ export default {
       return null
     },
 
-    filterPointsInBounds(points, bounds, limit) {
-      const filtered = []
-      for (let i = 0; i < points.length; i += 1) {
-        const point = points[i]
-        if (
-          point.lat <= bounds.north &&
-          point.lat >= bounds.south &&
-          point.lng >= bounds.west &&
-          point.lng <= bounds.east
-        ) {
-          filtered.push(point)
-          if (limit && filtered.length >= limit) {
-            break
-          }
-        }
-      }
-      return filtered
-    },
-
     scheduleBostonUpdate() {
       if (this.bostonUpdateHandle) {
         clearTimeout(this.bostonUpdateHandle)
@@ -765,118 +548,6 @@ export default {
         return 1
       }
       return Math.min(5, Math.max(1, this.dangerLevel))
-    },
-
-    isExcludedOffense(offenseDescription, offenseGroup, ucrPart) {
-      const text =
-        `${offenseDescription || ''} ${offenseGroup || ''} ${ucrPart || ''}`
-          .toUpperCase()
-          .trim()
-      if (!text) {
-        return false
-      }
-      return BOSTON_EXCLUDED_KEYWORDS.some(keyword => text.includes(keyword))
-    },
-
-    getDangerLevelForOffense({
-      offenseDescription,
-      offenseGroup,
-      offenseCode,
-      shooting,
-      ucrPart,
-    }) {
-      const text =
-        `${offenseDescription || ''} ${offenseGroup || ''} ${offenseCode || ''}`
-          .toUpperCase()
-          .trim()
-      const ucrText = (ucrPart || '').toUpperCase()
-      const shootingFlag = String(shooting || '').trim()
-
-      const matchAny = keywords =>
-        keywords.some(keyword => text.includes(keyword))
-
-      if (shootingFlag === '1') {
-        return 5
-      }
-
-      if (
-        matchAny([
-          'HOMICIDE',
-          'MURDER',
-          'MANSLAUGHTER',
-          'RAPE',
-          'SEXUAL ASSAULT',
-          'KIDNAPPING',
-          'HUMAN TRAFFICKING',
-        ])
-      ) {
-        return 5
-      }
-
-      if (
-        matchAny([
-          'ROBBERY',
-          'AGGRAVATED ASSAULT',
-          'ASSAULT - AGGRAVATED',
-          'FIREARM',
-          'GUN',
-          'WEAPON',
-          'ARMED',
-          'CARJACKING',
-          'BURGLARY',
-          'ARSON',
-          'SEX OFFENSE',
-        ])
-      ) {
-        return 4
-      }
-
-      if (
-        matchAny([
-          'ASSAULT',
-          'BATTERY',
-          'STALKING',
-          'THREAT',
-          'DOMESTIC',
-          'DRUG',
-          'NARCOTIC',
-          'OUI',
-          'DUI',
-        ])
-      ) {
-        return 3
-      }
-
-      if (
-        matchAny([
-          'LARCENY',
-          'THEFT',
-          'FRAUD',
-          'FORGERY',
-          'EMBEZZLEMENT',
-          'SHOPLIFT',
-          'TRESPASS',
-          'VANDAL',
-          'PROPERTY',
-          'MOTOR VEHICLE',
-          'AUTO THEFT',
-          'STOLEN',
-        ])
-      ) {
-        return 2
-      }
-
-      if (ucrText.includes('PART ONE')) {
-        return 4
-      }
-      if (ucrText.includes('PART TWO')) {
-        return 3
-      }
-      if (ucrText.includes('PART THREE')) {
-        return 1
-      }
-
-      return 1
     },
 
     getDangerLevelConfig(level) {
@@ -896,105 +567,7 @@ export default {
       }
     },
 
-    getBostonClusterRadiusMeters(zoom) {
-      const zoomDelta = BOSTON_CLUSTER_ZOOM_REFERENCE - zoom
-      const meters =
-        BOSTON_CLUSTER_RADIUS_BASE_METERS *
-        Math.pow(BOSTON_CLUSTER_ZOOM_SCALE, zoomDelta)
-      return Math.min(
-        BOSTON_CLUSTER_RADIUS_MAX_METERS,
-        Math.max(BOSTON_CLUSTER_RADIUS_MIN_METERS, meters),
-      )
-    },
-
-    clusterBostonPoints(points, radiusMeters, referenceLat) {
-      if (!points || points.length === 0) {
-        return []
-      }
-      const { deltaLat, deltaLng } = this.getLatLngDelta(
-        referenceLat,
-        radiusMeters,
-      )
-      const latStep = deltaLat
-      const lngStep = deltaLng
-      if (!Number.isFinite(latStep) || !Number.isFinite(lngStep)) {
-        return []
-      }
-
-      const grid = new Map()
-      const cellCoords = new Array(points.length)
-
-      points.forEach((point, index) => {
-        const latKey = Math.floor(point.lat / latStep)
-        const lngKey = Math.floor(point.lng / lngStep)
-        cellCoords[index] = { latKey, lngKey }
-        const key = `${latKey}:${lngKey}`
-        const bucket = grid.get(key)
-        if (bucket) {
-          bucket.push(index)
-        } else {
-          grid.set(key, [index])
-        }
-      })
-
-      const radiusSquared = radiusMeters * radiusMeters
-      const visited = new Array(points.length).fill(false)
-      const clusters = []
-      const neighborRange = 2
-
-      for (let i = 0; i < points.length; i += 1) {
-        if (visited[i]) {
-          continue
-        }
-        visited[i] = true
-        const seedPoint = points[i]
-        const cluster = [seedPoint]
-        const { latKey, lngKey } = cellCoords[i]
-
-        for (
-          let latOffset = -neighborRange;
-          latOffset <= neighborRange;
-          latOffset += 1
-        ) {
-          for (
-            let lngOffset = -neighborRange;
-            lngOffset <= neighborRange;
-            lngOffset += 1
-          ) {
-            const neighborKey = `${latKey + latOffset}:${lngKey + lngOffset}`
-            const neighbors = grid.get(neighborKey)
-            if (!neighbors) {
-              continue
-            }
-            for (let j = 0; j < neighbors.length; j += 1) {
-              const neighborIndex = neighbors[j]
-              if (visited[neighborIndex]) {
-                continue
-              }
-              const neighborPoint = points[neighborIndex]
-              if (
-                this.distanceSquaredMeters(
-                  seedPoint,
-                  neighborPoint,
-                  seedPoint.lat,
-                ) <= radiusSquared
-              ) {
-                visited[neighborIndex] = true
-                cluster.push(neighborPoint)
-              }
-            }
-          }
-        }
-
-        if (cluster.length >= BOSTON_CLUSTER_MIN_POINTS) {
-          clusters.push(cluster)
-        }
-      }
-
-      return clusters
-    },
-
-    renderBostonClusters(clusters, radiusMeters) {
+    renderBostonClusters(clusters, maxCountOverride) {
       const map = this.map
       if (!map) {
         return
@@ -1008,17 +581,32 @@ export default {
       }
 
       const H = window.H
-      const maxCount = Math.max(1, ...clusters.map(cluster => cluster.length))
-      clusters.forEach(cluster => {
-        const clusterCentroid = this.getClusterCentroid(cluster)
-        const summary = this.buildClusterSummary(cluster)
-        const intensity = Math.min(1, cluster.length / maxCount)
-        const clusterLevel = summary.maxLevel || 1
+      const maxCount =
+        Number.isFinite(maxCountOverride) && maxCountOverride > 0
+          ? maxCountOverride
+          : Math.max(
+              1,
+              ...clusters.map(cluster =>
+                Number.isFinite(cluster?.summary?.total)
+                  ? cluster.summary.total
+                  : cluster?.count || 1,
+              ),
+            )
+      clusters.forEach((cluster, index) => {
+        const summary = cluster?.summary
+        if (!summary) {
+          return
+        }
+        const totalCount = Number.isFinite(summary.total)
+          ? summary.total
+          : cluster?.count || 1
+        const intensity = Math.min(1, totalCount / maxCount)
+        const clusterLevel = summary.maxLevel || cluster?.maxLevel || 1
         const style = {
           ...this.getDangerStyleForLevel(clusterLevel, intensity),
           lineWidth: 1,
         }
-        const polygonPoints = this.clusterToPolygon(cluster, radiusMeters)
+        const polygonPoints = cluster?.polygon
         if (!polygonPoints || polygonPoints.length < 3) {
           return
         }
@@ -1026,8 +614,10 @@ export default {
         const polygonShape = new H.map.Polygon(polygonGeometry, { style })
         polygonShape.setData({
           summary,
-          centroid: clusterCentroid,
+          centroid: cluster?.centroid,
           level: clusterLevel,
+          detailKey: cluster?.detailKey || '',
+          detailIndex: index,
         })
         polygonShape.addEventListener('tap', event =>
           this.handleBostonClusterTap(event),
@@ -1061,7 +651,8 @@ export default {
         return
       }
 
-      const content = this.buildClusterInfoHtml(data.summary)
+      const needsDetails = !this.hasClusterDetails(data.summary)
+      const content = this.buildClusterInfoHtml(data.summary, needsDetails)
       if (this.activeInfoBubble) {
         this.ui.removeBubble(this.activeInfoBubble)
       }
@@ -1069,87 +660,118 @@ export default {
       this.ui.addBubble(bubble)
       this.tweakInfoBubbleLayout(bubble)
       this.activeInfoBubble = bubble
-    },
 
-    buildClusterSummary(cluster) {
-      const offenseMap = new Map()
-      const samples = []
-      let shootingCount = 0
-      const levelCounts = new Map()
-      let maxLevel = 1
-
-      cluster.forEach(point => {
-        const offenseCode = point.offenseCode || 'N/A'
-        const offenseDescription = point.offenseDescription || 'Unknown offense'
-        const key = `${offenseCode}::${offenseDescription}`
-        const existing = offenseMap.get(key)
-        if (existing) {
-          existing.count += 1
-        } else {
-          offenseMap.set(key, {
-            code: offenseCode,
-            description: offenseDescription,
-            count: 1,
+      if (needsDetails) {
+        this.fetchClusterDetail(data.detailKey, data.detailIndex)
+          .then(detail => {
+            const finalSummary =
+              detail && Array.isArray(detail.topOffenses)
+                ? { ...data.summary, ...detail }
+                : data.summary
+            data.summary = finalSummary
+            this.updateInfoBubbleContent(bubble, position, finalSummary)
           })
-        }
-
-        const shootingValue = String(point.shooting || '')
-          .trim()
-          .toLowerCase()
-        if (shootingValue === '1' || shootingValue === 'y') {
-          shootingCount += 1
-        }
-
-        if (samples.length < BOSTON_CLUSTER_SAMPLE_LIMIT) {
-          samples.push({
-            code: offenseCode,
-            description: offenseDescription,
-            occurredOnDate: point.occurredOnDate || '',
+          .catch(error => {
+            console.error('Error loading cluster details:', error)
+            this.updateInfoBubbleContent(bubble, position, data.summary)
           })
-        }
-
-        const level = Number.isFinite(point.dangerLevel) ? point.dangerLevel : 1
-        levelCounts.set(level, (levelCounts.get(level) ?? 0) + 1)
-        if (level > maxLevel) {
-          maxLevel = level
-        }
-      })
-
-      const topOffenses = Array.from(offenseMap.values())
-        .sort((a, b) => b.count - a.count)
-        .slice(0, BOSTON_CLUSTER_TOP_OFFENSE_LIMIT)
-
-      return {
-        total: cluster.length,
-        uniqueOffenses: offenseMap.size,
-        topOffenses,
-        samples,
-        shootingCount,
-        maxLevel,
-        levelCounts,
       }
     },
 
-    buildClusterInfoHtml(summary) {
-      const topOffenses = summary.topOffenses
-        .map(
-          item =>
-            `<li>${this.escapeHtml(item.code)} - ${this.escapeHtml(
-              item.description,
-            )} (${item.count})</li>`,
-        )
-        .join('')
+    hasClusterDetails(summary) {
+      return Array.isArray(summary?.topOffenses)
+    },
 
-      const sampleItems = summary.samples
-        .map(item => {
-          const dateLabel = this.formatOccurredOnDate(item.occurredOnDate)
-          const crimeLabel = `${item.code} - ${item.description}`
-          const details = dateLabel
-            ? `${dateLabel} · ${crimeLabel}`
-            : crimeLabel
-          return `<li>${this.escapeHtml(details)}</li>`
-        })
-        .join('')
+    async fetchClusterDetail(detailKey, detailIndex) {
+      if (!detailKey && !Number.isFinite(detailIndex)) {
+        return null
+      }
+      const cacheKey = detailKey || `index:${detailIndex}`
+      const cached = this.bostonDetailCache.get(cacheKey)
+      if (cached) {
+        return cached
+      }
+      const query = new URLSearchParams()
+      if (detailKey) {
+        query.set('detailKey', detailKey)
+      } else if (this.bostonDetailContext) {
+        query.set('detailIndex', String(detailIndex))
+        query.set('north', String(this.bostonDetailContext.north))
+        query.set('south', String(this.bostonDetailContext.south))
+        query.set('east', String(this.bostonDetailContext.east))
+        query.set('west', String(this.bostonDetailContext.west))
+        if (Number.isFinite(this.bostonDetailContext.zoom)) {
+          query.set('zoom', String(this.bostonDetailContext.zoom))
+        }
+        query.set(
+          'dangerLevel',
+          String(this.bostonDetailContext.dangerLevel ?? 1),
+        )
+        if (Number.isFinite(this.bostonDetailContext.limit)) {
+          query.set('limit', String(this.bostonDetailContext.limit))
+        }
+      } else {
+        return null
+      }
+
+      let response = await fetch(
+        `/.netlify/functions/boston-clusters?${query.toString()}`,
+      )
+      if (
+        !response.ok &&
+        detailKey &&
+        this.bostonDetailContext &&
+        Number.isFinite(detailIndex)
+      ) {
+        const fallbackQuery = new URLSearchParams()
+        fallbackQuery.set('detailIndex', String(detailIndex))
+        fallbackQuery.set('north', String(this.bostonDetailContext.north))
+        fallbackQuery.set('south', String(this.bostonDetailContext.south))
+        fallbackQuery.set('east', String(this.bostonDetailContext.east))
+        fallbackQuery.set('west', String(this.bostonDetailContext.west))
+        if (Number.isFinite(this.bostonDetailContext.zoom)) {
+          fallbackQuery.set('zoom', String(this.bostonDetailContext.zoom))
+        }
+        fallbackQuery.set(
+          'dangerLevel',
+          String(this.bostonDetailContext.dangerLevel ?? 1),
+        )
+        if (Number.isFinite(this.bostonDetailContext.limit)) {
+          fallbackQuery.set('limit', String(this.bostonDetailContext.limit))
+        }
+        response = await fetch(
+          `/.netlify/functions/boston-clusters?${fallbackQuery.toString()}`,
+        )
+      }
+      if (!response.ok) {
+        throw new Error(`Cluster detail fetch failed: ${response.status}`)
+      }
+      const detail = await response.json()
+      if (detail && Array.isArray(detail.topOffenses)) {
+        this.bostonDetailCache.set(cacheKey, detail)
+        if (this.bostonDetailCache.size > 100) {
+          const oldestKey = this.bostonDetailCache.keys().next().value
+          this.bostonDetailCache.delete(oldestKey)
+        }
+      }
+      return detail
+    },
+
+    buildClusterInfoHtml(summary, isLoadingDetails) {
+      const topOffensesList = Array.isArray(summary.topOffenses)
+        ? summary.topOffenses
+        : []
+      const topOffenses =
+        topOffensesList.length > 0
+          ? topOffensesList
+              .map(
+                item =>
+                  `<li>${this.escapeHtml(item.code)} - ${this.escapeHtml(
+                    item.description,
+                  )} (${item.count})</li>`,
+              )
+              .join('')
+          : `<li>${isLoadingDetails ? 'Loading details...' : 'Details unavailable.'}</li>`
 
       const levelConfig = this.getDangerLevelConfig(summary.maxLevel || 1)
       const shootingLine =
@@ -1168,30 +790,27 @@ export default {
           <ul style="margin:4px 0 6px 18px; padding:0;">
             ${topOffenses || '<li>Unknown</li>'}
           </ul>
-          <div style="font-weight:600; margin-top:6px;">
-            Sample crimes (${summary.samples.length} of ${summary.total})
-          </div>
-          <ul style="margin:4px 0 0 18px; padding:0;">
-            ${sampleItems || '<li>Unknown</li>'}
-          </ul>
         </div>
       `
     },
 
-    formatOccurredOnDate(value) {
-      if (!value) {
-        return ''
+    updateInfoBubbleContent(bubble, position, summary) {
+      if (!this.ui || !bubble) {
+        return
       }
-      const trimmed = value.trim()
-      if (!trimmed) {
-        return ''
+      const html = this.buildClusterInfoHtml(summary, false)
+      const element = bubble.getElement?.()
+      if (element) {
+        bubble.setContent(html)
+        this.tweakInfoBubbleLayout(bubble)
+        return
       }
-      const parts = trimmed.split(' ')
-      if (parts.length < 2) {
-        return trimmed
-      }
-      const time = parts[1].replace(/\+.*$/, '')
-      return `${parts[0]} ${time}`
+
+      const H = window.H
+      const refreshed = new H.ui.InfoBubble(position, { content: html })
+      this.ui.addBubble(refreshed)
+      this.tweakInfoBubbleLayout(refreshed)
+      this.activeInfoBubble = refreshed
     },
 
     escapeHtml(value) {
@@ -1220,146 +839,6 @@ export default {
       if (content) {
         content.style.width = '100%'
       }
-    },
-
-    clusterToPolygon(cluster, radiusMeters) {
-      if (!cluster || cluster.length === 0) {
-        return []
-      }
-      const centroid = this.getClusterCentroid(cluster)
-      if (cluster.length < 3) {
-        const radiusScale = Math.min(1, 0.55 + cluster.length * 0.2)
-        return this.buildRegularPolygon(
-          centroid,
-          radiusMeters * radiusScale,
-          BOSTON_CLUSTER_SMALL_POLY_SIDES,
-        )
-      }
-
-      const hull = this.computeConvexHull(cluster)
-      if (!hull || hull.length < 3) {
-        return this.buildRegularPolygon(
-          centroid,
-          radiusMeters,
-          BOSTON_CLUSTER_SMALL_POLY_SIDES,
-        )
-      }
-      const expansion =
-        1 +
-        Math.min(BOSTON_CLUSTER_EXPANSION_MAX, Math.log(cluster.length + 1) / 6)
-      const expanded = this.scalePolygonFromCentroid(hull, centroid, expansion)
-      return this.clampPolygonToRadius(expanded, centroid, radiusMeters)
-    },
-
-    computeConvexHull(points) {
-      if (!points || points.length <= 2) {
-        return points ? [...points] : []
-      }
-      const sorted = [...points].sort((a, b) => {
-        if (a.lng === b.lng) {
-          return a.lat - b.lat
-        }
-        return a.lng - b.lng
-      })
-
-      const cross = (o, a, b) =>
-        (a.lng - o.lng) * (b.lat - o.lat) - (a.lat - o.lat) * (b.lng - o.lng)
-
-      const lower = []
-      sorted.forEach(point => {
-        while (
-          lower.length >= 2 &&
-          cross(lower[lower.length - 2], lower[lower.length - 1], point) <= 0
-        ) {
-          lower.pop()
-        }
-        lower.push(point)
-      })
-
-      const upper = []
-      for (let i = sorted.length - 1; i >= 0; i -= 1) {
-        const point = sorted[i]
-        while (
-          upper.length >= 2 &&
-          cross(upper[upper.length - 2], upper[upper.length - 1], point) <= 0
-        ) {
-          upper.pop()
-        }
-        upper.push(point)
-      }
-
-      lower.pop()
-      upper.pop()
-      return lower.concat(upper)
-    },
-
-    scalePolygonFromCentroid(points, centroid, scale) {
-      return points.map(point => ({
-        lat: centroid.lat + (point.lat - centroid.lat) * scale,
-        lng: centroid.lng + (point.lng - centroid.lng) * scale,
-      }))
-    },
-
-    buildRegularPolygon(center, radiusMeters, sides) {
-      const { deltaLat, deltaLng } = this.getLatLngDelta(
-        center.lat,
-        radiusMeters,
-      )
-      const polygon = []
-      const step = (Math.PI * 2) / sides
-
-      for (let i = 0; i < sides; i += 1) {
-        const angle = step * i
-        polygon.push({
-          lat: center.lat + Math.sin(angle) * deltaLat,
-          lng: center.lng + Math.cos(angle) * deltaLng,
-        })
-      }
-
-      return polygon
-    },
-
-    clampPolygonToRadius(points, centroid, radiusMeters) {
-      const maxDistance = radiusMeters
-      return points.map(point => {
-        const distanceSquared = this.distanceSquaredMeters(
-          point,
-          centroid,
-          centroid.lat,
-        )
-        if (distanceSquared <= maxDistance * maxDistance) {
-          return point
-        }
-        const distance = Math.sqrt(distanceSquared)
-        const scale = distance > 0 ? maxDistance / distance : 1
-        return {
-          lat: centroid.lat + (point.lat - centroid.lat) * scale,
-          lng: centroid.lng + (point.lng - centroid.lng) * scale,
-        }
-      })
-    },
-
-    getClusterCentroid(points) {
-      let sumLat = 0
-      let sumLng = 0
-      for (let i = 0; i < points.length; i += 1) {
-        sumLat += points[i].lat
-        sumLng += points[i].lng
-      }
-      return {
-        lat: sumLat / points.length,
-        lng: sumLng / points.length,
-      }
-    },
-
-    distanceSquaredMeters(pointA, pointB, referenceLat) {
-      const latRadians =
-        ((referenceLat ?? (pointA.lat + pointB.lat) / 2) * Math.PI) / 180
-      const metersPerDegreeLng =
-        METERS_PER_DEGREE_LAT * Math.max(Math.cos(latRadians), 0.01)
-      const dx = (pointA.lng - pointB.lng) * metersPerDegreeLng
-      const dy = (pointA.lat - pointB.lat) * METERS_PER_DEGREE_LAT
-      return dx * dx + dy * dy
     },
 
     async recalculateRouteWithPolygons(map) {
@@ -1444,7 +923,7 @@ export default {
 
       // Instantiate and display a map object:
       const map = new H.Map(mapContainer, style, {
-        zoom: DEFAULT_MAP_ZOOM,
+        zoom: 14,
         center: this.center,
       })
 
@@ -1458,11 +937,6 @@ export default {
       map.getViewPort().element.style.touchAction = 'none'
       const ui = H.ui.UI.createDefault(map, defaultLayers)
       this.ui = ui
-      this.applyInitialView(true)
-      requestAnimationFrame(() => {
-        map.getViewPort().resize()
-        this.applyInitialView(true)
-      })
 
       // Adjust map viewport on window resize
       window.addEventListener('resize', () => map.getViewPort().resize())
