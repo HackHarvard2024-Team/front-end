@@ -49,6 +49,27 @@
               >Starting Address</label
             >
           </div>
+          <button
+            type="button"
+            class="pin-button pin-button-start"
+            draggable="true"
+            @dragstart="handlePinDragStart('origin', $event)"
+            aria-label="Drag start pin to map"
+            title="Drag start pin to map"
+          >
+            <svg
+              class="pin-icon"
+              viewBox="0 0 24 32"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M12 0C7.58 0 4 3.58 4 8c0 5.33 6.7 12.5 7.16 12.99L12 22l.84-1.01C13.3 20.5 20 13.33 20 8c0-4.42-3.58-8-8-8z"
+                fill="currentColor"
+              />
+              <circle cx="12" cy="8.5" r="4" fill="#fff" />
+            </svg>
+          </button>
         </div>
 
         <!-- Input fields for destination address -->
@@ -65,6 +86,27 @@
               >Destination Address</label
             >
           </div>
+          <button
+            type="button"
+            class="pin-button pin-button-dest"
+            draggable="true"
+            @dragstart="handlePinDragStart('destination', $event)"
+            aria-label="Drag destination pin to map"
+            title="Drag destination pin to map"
+          >
+            <svg
+              class="pin-icon"
+              viewBox="0 0 24 32"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M12 0C7.58 0 4 3.58 4 8c0 5.33 6.7 12.5 7.16 12.99L12 22l.84-1.01C13.3 20.5 20 13.33 20 8c0-4.42-3.58-8-8-8z"
+                fill="currentColor"
+              />
+              <circle cx="12" cy="8.5" r="4" fill="#fff" />
+            </svg>
+          </button>
         </div>
 
         <!-- Transportation Mode Selection -->
@@ -180,7 +222,16 @@
         </div>
 
         <!-- Submit button -->
-        <button @click="submit" id="submit-button">Submit</button>
+        <div class="route-actions">
+          <button @click="submit" id="submit-button">Submit</button>
+          <button
+            @click="clearRoute"
+            id="clear-route-button"
+            :disabled="!origin && !destination && !routeInstructions"
+          >
+            Clear route
+          </button>
+        </div>
         <!-- Display the route instructions and summary -->
         <div v-if="routeInstructions" class="route-instructions-container">
           <div class="route-summary">
@@ -216,12 +267,15 @@
       <!-- Main content -->
       <div class="main-content">
         <HereMap
+          ref="hereMap"
           :center="center"
           :origin="origin"
           :destination="destination"
           :transportMode="transportMode"
           :dangerLevel="dangerLevel"
           @route-instructions="handleRouteInstructions"
+          @origin-updated="handleOriginUpdated"
+          @destination-updated="handleDestinationUpdated"
         />
       </div>
     </div>
@@ -270,6 +324,45 @@ export default {
     },
     toggleUnit() {
       this.unit = this.unit === 'miles' ? 'kilometers' : 'miles'
+    },
+    handlePinDragStart(type, event) {
+      if (!event?.dataTransfer) {
+        return
+      }
+      event.dataTransfer.setData('text/plain', type)
+      event.dataTransfer.effectAllowed = 'copy'
+      if (event.dataTransfer.setDragImage && event.currentTarget) {
+        event.dataTransfer.setDragImage(event.currentTarget, 16, 16)
+      }
+    },
+    handleOriginUpdated(position) {
+      if (!position) {
+        return
+      }
+      this.startLat = position.lat
+      this.startLng = position.lng
+      this.origin = { lat: position.lat, lng: position.lng }
+    },
+    handleDestinationUpdated(position) {
+      if (!position) {
+        return
+      }
+      this.destLat = position.lat
+      this.destLng = position.lng
+      this.destination = { lat: position.lat, lng: position.lng }
+    },
+    clearRoute() {
+      const mapRef = this.$refs.hereMap
+      if (mapRef && typeof mapRef.clearRoute === 'function') {
+        mapRef.clearRoute()
+      }
+      this.origin = null
+      this.destination = null
+      this.startLat = null
+      this.startLng = null
+      this.destLat = null
+      this.destLng = null
+      this.routeInstructions = null
     },
     async submit() {
       try {
@@ -548,11 +641,48 @@ export default {
 .input-container {
   display: flex;
   align-items: center;
+  gap: 8px;
   margin-bottom: 0.25rem;
 }
 
 .input-container .floating-label-group {
   flex: 1;
+}
+
+.sidebar .pin-button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: grab;
+}
+
+.sidebar .pin-button:hover {
+  transform: none;
+}
+
+.sidebar .pin-button:active {
+  cursor: grabbing;
+}
+
+.pin-button-start {
+  color: #2563eb;
+  border-color: #93c5fd;
+}
+
+.pin-button-dest {
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.pin-icon {
+  width: 16px;
+  height: 20px;
 }
 .transport-mode-container {
   margin-top: 15px;
@@ -667,6 +797,43 @@ button#submit-button {
 
 button#submit-button:hover {
   background-color: #2c3e50;
+}
+
+.route-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.route-actions button {
+  flex: 1;
+}
+
+.route-actions #submit-button {
+  width: auto;
+  margin-top: 0;
+}
+
+#clear-route-button {
+  padding: 12px;
+  border-radius: 5px;
+  border: 1px solid #cbd5f5;
+  background: #fff;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+#clear-route-button:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+#clear-route-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .route-instructions-container {

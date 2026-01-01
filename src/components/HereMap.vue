@@ -45,15 +45,22 @@
       <div class="legend-tip">
         <div class="legend-tip-item">
           <span class="legend-icon legend-icon-info">i</span>
-          <span>Zoom in to click a cluster and see why it is risky.</span>
+          <span>Zoom in to click a cluster and see why it is risky</span>
         </div>
         <div class="legend-tip-item">
           <span class="legend-icon legend-icon-filter">3</span>
-          <span>Default safety filter starts at Level 3.</span>
+          <span>Default safety filter starts at level 3.</span>
         </div>
         <div class="legend-tip-item">
           <span class="legend-icon legend-icon-city">B</span>
-          <span>Currently focused on Boston data.</span>
+          <span>Currently focused on Boston data</span>
+        </div>
+        <div class="legend-tip-item">
+          <span class="legend-icon legend-icon-warning">!</span>
+          <span>
+            Some routes may cross a risk zone if no safe alternative exists.
+            Try raising the safety filter.
+          </span>
         </div>
       </div>
     </div>
@@ -130,6 +137,11 @@ export default {
       bostonRequestId: 0,
       bostonAvoidPolygons: [],
       bostonDetailCache: new Map(),
+      originMarker: null,
+      destinationMarker: null,
+      endpointIcons: {},
+      markerDragHandlersReady: false,
+      dropHandlersReady: false,
       activeInfoBubble: null,
       bostonUpdateHandle: null,
       legendLevels: BOSTON_DANGER_LEVELS,
@@ -636,6 +648,254 @@ export default {
       }
     },
 
+    setupMarkerDragHandlers() {
+      if (this.markerDragHandlersReady || !this.map) {
+        return
+      }
+      const map = this.map
+      const H = window.H
+
+      map.addEventListener('dragstart', event => {
+        const target = event.target
+        const pointer = event.currentPointer
+        if (!(target instanceof H.map.Marker)) {
+          return
+        }
+        const data = target.getData?.()
+        if (!data?.kind) {
+          return
+        }
+        const screenPos = map.geoToScreen(target.getGeometry())
+        target.setData({
+          ...data,
+          dragOffset: new H.math.Point(
+            pointer.viewportX - screenPos.x,
+            pointer.viewportY - screenPos.y,
+          ),
+        })
+        this.behavior.disable()
+        event.stopPropagation()
+      })
+
+      map.addEventListener('drag', event => {
+        const target = event.target
+        const pointer = event.currentPointer
+        if (!(target instanceof H.map.Marker)) {
+          return
+        }
+        const data = target.getData?.()
+        if (!data?.dragOffset) {
+          return
+        }
+        const newGeo = map.screenToGeo(
+          pointer.viewportX - data.dragOffset.x,
+          pointer.viewportY - data.dragOffset.y,
+        )
+        target.setGeometry(newGeo)
+        event.stopPropagation()
+      })
+
+      map.addEventListener('dragend', event => {
+        const target = event.target
+        if (!(target instanceof H.map.Marker)) {
+          return
+        }
+        const data = target.getData?.()
+        if (!data?.dragOffset) {
+          return
+        }
+        target.setData({ ...data, dragOffset: null })
+        if (this.behavior && typeof this.behavior.enable === 'function') {
+          this.behavior.enable()
+        }
+        this.enableMapDragging()
+        const position = target.getGeometry()
+        if (position && data.kind) {
+          this.emitEndpointUpdate(data.kind, position)
+        }
+        event.stopPropagation()
+      })
+
+      this.markerDragHandlersReady = true
+    },
+
+    setupDropTargets() {
+      if (this.dropHandlersReady || !this.map) {
+        return
+      }
+      const mapContainer = this.$refs.hereMap
+      if (!mapContainer) {
+        return
+      }
+
+      mapContainer.addEventListener('dragover', event => {
+        event.preventDefault()
+        if (event.dataTransfer) {
+          event.dataTransfer.dropEffect = 'copy'
+        }
+      })
+
+      mapContainer.addEventListener('drop', event => {
+        event.preventDefault()
+        const type = event.dataTransfer?.getData('text/plain')
+        if (type !== 'origin' && type !== 'destination') {
+          return
+        }
+        const rect = mapContainer.getBoundingClientRect()
+        const x = event.clientX - rect.left
+        const y = event.clientY - rect.top
+        this.handlePinDrop(type, { x, y })
+      })
+
+      this.dropHandlersReady = true
+    },
+
+    getEndpointIcon(type) {
+      if (this.endpointIcons[type]) {
+        return this.endpointIcons[type]
+      }
+      const H = window.H
+      const color = type === 'origin' ? '#2563eb' : '#dc2626'
+      const inner = type === 'origin' ? '#bfdbfe' : '#fecaca'
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 24 32">
+        <path d="M12 0C7.58 0 4 3.58 4 8c0 5.33 6.7 12.5 7.16 12.99L12 22l.84-1.01C13.3 20.5 20 13.33 20 8c0-4.42-3.58-8-8-8z" fill="${color}"/>
+        <circle cx="12" cy="8.5" r="4" fill="${inner}"/>
+      </svg>`
+      const icon = new H.map.Icon(svg)
+      this.endpointIcons[type] = icon
+      return icon
+    },
+
+    setEndpointMarker(type, position, shouldEmit = false) {
+      if (!this.map) {
+        return null
+      }
+      const markerKey = type === 'origin' ? 'originMarker' : 'destinationMarker'
+      const currentMarker = this[markerKey]
+      const hasPosition =
+        position &&
+        Number.isFinite(position.lat) &&
+        Number.isFinite(position.lng)
+
+      if (!hasPosition) {
+        if (currentMarker) {
+          this.map.removeObject(currentMarker)
+          this[markerKey] = null
+        }
+        return null
+      }
+
+      const point = { lat: position.lat, lng: position.lng }
+      if (!currentMarker) {
+        const marker = new window.H.map.Marker(point, {
+          icon: this.getEndpointIcon(type),
+        })
+        marker.setData({ kind: type })
+        marker.draggable = true
+        this.map.addObject(marker)
+        this[markerKey] = marker
+        if (shouldEmit) {
+          this.emitEndpointUpdate(type, point)
+        }
+        return marker
+      } else {
+        currentMarker.setGeometry(point)
+        if (!currentMarker.getParent?.()) {
+          this.map.addObject(currentMarker)
+        }
+        if (shouldEmit) {
+          this.emitEndpointUpdate(type, point)
+        }
+        return currentMarker
+      }
+    },
+
+    emitEndpointUpdate(type, position) {
+      const payload = { lat: position.lat, lng: position.lng }
+      if (type === 'origin') {
+        this.$emit('origin-updated', payload)
+      } else if (type === 'destination') {
+        this.$emit('destination-updated', payload)
+      }
+    },
+
+    handlePinDrop(type, screenPoint) {
+      if (!this.map || !screenPoint) {
+        return
+      }
+      const dropGeo = this.map.screenToGeo(screenPoint.x, screenPoint.y)
+      if (
+        !dropGeo ||
+        !Number.isFinite(dropGeo.lat) ||
+        !Number.isFinite(dropGeo.lng)
+      ) {
+        return
+      }
+
+      const startScreenY = Math.max(0, screenPoint.y - 70)
+      const startGeo = this.map.screenToGeo(screenPoint.x, startScreenY)
+      const startPoint =
+        startGeo && Number.isFinite(startGeo.lat) && Number.isFinite(startGeo.lng)
+          ? { lat: startGeo.lat, lng: startGeo.lng }
+          : { lat: dropGeo.lat, lng: dropGeo.lng }
+
+      const marker = this.setEndpointMarker(type, startPoint, false)
+      if (!marker) {
+        return
+      }
+      this.animateMarkerDrop(marker, startPoint, {
+        lat: dropGeo.lat,
+        lng: dropGeo.lng,
+      }, () => {
+        this.emitEndpointUpdate(type, { lat: dropGeo.lat, lng: dropGeo.lng })
+      })
+    },
+
+    animateMarkerDrop(marker, from, to, onComplete) {
+      if (!marker || !from || !to) {
+        return
+      }
+      if (marker.__animFrame) {
+        cancelAnimationFrame(marker.__animFrame)
+      }
+      const duration = 320
+      const startTime = performance.now()
+      const easeOut = t => 1 - Math.pow(1 - t, 3)
+      const step = now => {
+        const progress = Math.min(1, (now - startTime) / duration)
+        const eased = easeOut(progress)
+        const lat = from.lat + (to.lat - from.lat) * eased
+        const lng = from.lng + (to.lng - from.lng) * eased
+        marker.setGeometry({ lat, lng })
+        if (progress < 1) {
+          marker.__animFrame = requestAnimationFrame(step)
+        } else {
+          marker.__animFrame = null
+          marker.setGeometry({ lat: to.lat, lng: to.lng })
+          if (typeof onComplete === 'function') {
+            onComplete()
+          }
+        }
+      }
+      marker.__animFrame = requestAnimationFrame(step)
+    },
+
+    activatePin(type) {
+      if (!this.map) {
+        return
+      }
+      const fallback = this.map.getCenter?.()
+      const current = type === 'origin' ? this.origin : this.destination
+      const position = current || fallback
+      if (!position) {
+        return
+      }
+      this.setEndpointMarker(type, position, true)
+      this.map.getViewModel()?.setLookAtData?.({
+        position,
+      })
+    },
+
     normalizePolygonCoords(coords, latKey, lngKey) {
       if (!Array.isArray(coords)) {
         return []
@@ -645,7 +905,9 @@ export default {
           lat: Number(point?.[latKey]),
           lng: Number(point?.[lngKey]),
         }))
-        .filter(point => Number.isFinite(point.lat) && Number.isFinite(point.lng))
+        .filter(
+          point => Number.isFinite(point.lat) && Number.isFinite(point.lng),
+        )
     },
 
     sanitizePolygonPoints(points, maxPoints) {
@@ -716,6 +978,12 @@ export default {
       const keep = new Set(this.bostonPolygonObjects)
       if (this.searchMarker) {
         keep.add(this.searchMarker)
+      }
+      if (this.originMarker) {
+        keep.add(this.originMarker)
+      }
+      if (this.destinationMarker) {
+        keep.add(this.destinationMarker)
       }
       const toRemove = map.getObjects().filter(obj => !keep.has(obj))
       if (toRemove.length > 0) {
@@ -1087,6 +1355,8 @@ export default {
       this.mapEvents = new H.mapevents.MapEvents(map)
       this.behavior = new H.mapevents.Behavior(this.mapEvents)
       this.enableMapDragging()
+      this.setupMarkerDragHandlers()
+      this.setupDropTargets()
       // Ensure touch gestures are captured by the map viewport.
       map.getViewPort().element.style.touchAction = 'none'
       const ui = H.ui.UI.createDefault(map, defaultLayers)
@@ -1205,7 +1475,7 @@ export default {
       this.addRouteShapeToMap(route, map)
 
       // Optionally, add markers and other route details
-      this.addMarkersToMap(route, map)
+      this.addMarkersToMap(route)
 
       // Extract route instructions and summary
       const routeData = this.extractRouteInstructions(route)
@@ -1239,7 +1509,10 @@ export default {
 
       if (bostonPayload?.clusters) {
         this.setBostonAvoidPolygons(bostonPayload.clusters)
-        this.renderBostonClusters(bostonPayload.clusters, bostonPayload.maxCount)
+        this.renderBostonClusters(
+          bostonPayload.clusters,
+          bostonPayload.maxCount,
+        )
       } else {
         this.bostonAvoidPolygons = []
       }
@@ -1268,7 +1541,7 @@ export default {
       this.addRouteShapeToMap(route, map)
 
       // Optionally, add markers and other route details
-      this.addMarkersToMap(route, map)
+      this.addMarkersToMap(route)
 
       // Extract route instructions and summary
       const routeData = this.extractRouteInstructions(route)
@@ -1326,14 +1599,14 @@ export default {
       })
     },
 
-    addMarkersToMap(route, map) {
-      const H = window.H
-      route.sections.forEach(section => {
-        // Create markers for the start and end points
-        const startMarker = new H.map.Marker(section.departure.place.location)
-        const endMarker = new H.map.Marker(section.arrival.place.location)
-        map.addObjects([startMarker, endMarker])
-      })
+    addMarkersToMap(route) {
+      if (!route?.sections?.length) {
+        return
+      }
+      const firstSection = route.sections[0]
+      const lastSection = route.sections[route.sections.length - 1]
+      this.setEndpointMarker('origin', firstSection.departure.place.location)
+      this.setEndpointMarker('destination', lastSection.arrival.place.location)
     },
 
     addPolygonsToMapFromAPI(polygons, map) {
@@ -1463,17 +1736,30 @@ export default {
       }
       return null
     },
+
+    clearRoute() {
+      this.apiPolygons = []
+      if (this.map) {
+        this.clearMapForRoute(this.map)
+      }
+      if (this.activeInfoBubble && this.ui) {
+        this.ui.removeBubble(this.activeInfoBubble)
+        this.activeInfoBubble = null
+      }
+    },
   },
   watch: {
     origin(newOrigin) {
       if (newOrigin && this.destination && this.map) {
         this.calculateRouteFromAtoB(this.map)
       }
+      this.setEndpointMarker('origin', newOrigin)
     },
     destination(newDestination) {
       if (newDestination && this.origin && this.map) {
         this.calculateRouteFromAtoB(this.map)
       }
+      this.setEndpointMarker('destination', newDestination)
     },
     transportMode() {
       if (this.origin && this.destination && this.map) {
@@ -1635,6 +1921,12 @@ export default {
   background: #ede9fe;
   color: #6d28d9;
   border-color: rgba(109, 40, 217, 0.35);
+}
+
+.legend-icon-warning {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.35);
 }
 
 .suggestions {
