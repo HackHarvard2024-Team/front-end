@@ -128,6 +128,7 @@ export default {
       bostonPolygonObjects: [],
       bostonPolygonsLoading: false,
       bostonRequestId: 0,
+      bostonAvoidPolygons: [],
       bostonDetailCache: new Map(),
       activeInfoBubble: null,
       bostonUpdateHandle: null,
@@ -347,6 +348,7 @@ export default {
         const clusters = Array.isArray(payload?.clusters)
           ? payload.clusters
           : []
+        this.setBostonAvoidPolygons(clusters)
         this.renderBostonClusters(clusters, payload?.maxCount)
       } catch (error) {
         console.error('Error loading Boston clusters:', error)
@@ -403,6 +405,40 @@ export default {
 
       const viewPortBounds = this.map?.getViewPort?.()?.getBoundingBox?.()
       return this.normalizeBounds(viewPortBounds)
+    },
+
+    mergeBounds(boundsA, boundsB) {
+      if (!boundsA) {
+        return boundsB
+      }
+      if (!boundsB) {
+        return boundsA
+      }
+      return {
+        north: Math.max(boundsA.north, boundsB.north),
+        south: Math.min(boundsA.south, boundsB.south),
+        east: Math.max(boundsA.east, boundsB.east),
+        west: Math.min(boundsA.west, boundsB.west),
+      }
+    },
+
+    getRouteBounds(route) {
+      if (!route?.sections?.length) {
+        return null
+      }
+      const H = window.H
+      let merged = null
+      route.sections.forEach(section => {
+        if (!section?.polyline) {
+          return
+        }
+        const linestring = H.geo.LineString.fromFlexiblePolyline(
+          section.polyline,
+        )
+        const bounds = this.normalizeBounds(linestring.getBoundingBox())
+        merged = this.mergeBounds(merged, bounds)
+      })
+      return merged
     },
 
     getScreenBounds() {
@@ -567,6 +603,126 @@ export default {
       }
     },
 
+    setBostonAvoidPolygons(clusters) {
+      if (!Array.isArray(clusters)) {
+        this.bostonAvoidPolygons = []
+        return
+      }
+      this.bostonAvoidPolygons = clusters
+        .map(cluster => ({
+          polygon: cluster?.polygon,
+          maxLevel: cluster?.summary?.maxLevel ?? cluster?.maxLevel ?? 1,
+          count: cluster?.summary?.total ?? cluster?.count ?? 0,
+        }))
+        .filter(
+          item =>
+            Array.isArray(item.polygon) &&
+            item.polygon.length >= 3 &&
+            Number.isFinite(item.maxLevel),
+        )
+    },
+
+    enableMapDragging() {
+      if (!this.behavior || typeof this.behavior.enable !== 'function') {
+        return
+      }
+      const behaviorFlags = window.H?.mapevents?.Behavior
+      if (behaviorFlags?.DRAGGING) {
+        this.behavior.enable(behaviorFlags.DRAGGING)
+      } else if (behaviorFlags?.PANNING) {
+        this.behavior.enable(behaviorFlags.PANNING)
+      } else {
+        this.behavior.enable()
+      }
+    },
+
+    normalizePolygonCoords(coords, latKey, lngKey) {
+      if (!Array.isArray(coords)) {
+        return []
+      }
+      return coords
+        .map(point => ({
+          lat: Number(point?.[latKey]),
+          lng: Number(point?.[lngKey]),
+        }))
+        .filter(point => Number.isFinite(point.lat) && Number.isFinite(point.lng))
+    },
+
+    sanitizePolygonPoints(points, maxPoints) {
+      if (!Array.isArray(points)) {
+        return []
+      }
+      const filtered = points.filter(
+        point => Number.isFinite(point?.lat) && Number.isFinite(point?.lng),
+      )
+      if (filtered.length < 3) {
+        return []
+      }
+
+      const deduped = []
+      filtered.forEach(point => {
+        const last = deduped[deduped.length - 1]
+        if (!last || last.lat !== point.lat || last.lng !== point.lng) {
+          deduped.push(point)
+        }
+      })
+
+      if (deduped.length > 1) {
+        const first = deduped[0]
+        const last = deduped[deduped.length - 1]
+        if (first.lat === last.lat && first.lng === last.lng) {
+          deduped.pop()
+        }
+      }
+
+      if (deduped.length < 3) {
+        return []
+      }
+
+      const maxAllowed = Number.isFinite(maxPoints) ? maxPoints : 16
+      if (deduped.length <= maxAllowed) {
+        return deduped
+      }
+
+      const step = deduped.length / maxAllowed
+      const sampled = []
+      for (let i = 0; i < maxAllowed; i += 1) {
+        sampled.push(deduped[Math.floor(i * step)])
+      }
+
+      const normalized = []
+      sampled.forEach(point => {
+        const last = normalized[normalized.length - 1]
+        if (!last || last.lat !== point.lat || last.lng !== point.lng) {
+          normalized.push(point)
+        }
+      })
+
+      if (normalized.length > 1) {
+        const first = normalized[0]
+        const last = normalized[normalized.length - 1]
+        if (first.lat === last.lat && first.lng === last.lng) {
+          normalized.pop()
+        }
+      }
+
+      return normalized.length >= 3 ? normalized : []
+    },
+
+    clearMapForRoute(map) {
+      if (!map) {
+        return
+      }
+      const keep = new Set(this.bostonPolygonObjects)
+      if (this.searchMarker) {
+        keep.add(this.searchMarker)
+      }
+      const toRemove = map.getObjects().filter(obj => !keep.has(obj))
+      if (toRemove.length > 0) {
+        map.removeObjects(toRemove)
+      }
+    },
+
     renderBostonClusters(clusters, maxCountOverride) {
       const map = this.map
       if (!map) {
@@ -619,9 +775,6 @@ export default {
           detailKey: cluster?.detailKey || '',
           detailIndex: index,
         })
-        polygonShape.addEventListener('tap', event =>
-          this.handleBostonClusterTap(event),
-        )
         this.bostonPolygonObjects.push(polygonShape)
       })
 
@@ -933,10 +1086,12 @@ export default {
       // Enable the event system and default interactions:
       this.mapEvents = new H.mapevents.MapEvents(map)
       this.behavior = new H.mapevents.Behavior(this.mapEvents)
+      this.enableMapDragging()
       // Ensure touch gestures are captured by the map viewport.
       map.getViewPort().element.style.touchAction = 'none'
       const ui = H.ui.UI.createDefault(map, defaultLayers)
       this.ui = ui
+      map.addEventListener('tap', event => this.handleBostonClusterTap(event))
 
       // Adjust map viewport on window resize
       window.addEventListener('resize', () => map.getViewPort().resize())
@@ -952,8 +1107,12 @@ export default {
       this.addPolygonsToMap(map)
     },
 
-    calculateRouteFromAtoB(map) {
+    async calculateRouteFromAtoB(map) {
       const router = this.platform.getRoutingService() // Use the latest Routing API
+
+      if (this.bostonAvoidPolygons.length === 0) {
+        await this.updateBostonPolygonsInView()
+      }
 
       // Prepare the 'avoid[areas]' parameter
       const avoidAreas = this.constructAvoidAreasParameter()
@@ -977,41 +1136,67 @@ export default {
     },
 
     constructAvoidAreasParameter() {
-      // Helper function to convert polygon coordinates to the required format
-      const formatPolygon = coords => {
-        return (
-          'polygon:' +
-          coords.map(point => `${point.lat},${point.lng}`).join(';')
-        )
-      }
+      const maxPolygons = 20
+      const maxPoints = 16
+      const candidates = []
+      const pinned = []
+      const toPolygonString = points =>
+        `polygon:${points.map(point => `${point.lat},${point.lng}`).join(';')}`
 
-      const formatAPIPolygon = coords => {
-        return (
-          'polygon:' +
-          coords.map(point => `${point.lat},${point.lon}`).join(';')
-        )
+      const basePolygon = this.sanitizePolygonPoints(
+        this.normalizePolygonCoords(this.polygonCoords1, 'lat', 'lng'),
+        maxPoints,
+      )
+      if (basePolygon.length >= 3) {
+        pinned.push({ points: basePolygon, priority: Number.POSITIVE_INFINITY })
       }
-
-      // Combine both polygons, separating them with '|'
-      const avoidAreas = [formatPolygon(this.polygonCoords1)]
 
       if (this.apiPolygons && this.apiPolygons.length > 0) {
         this.apiPolygons.forEach(apiPolygon => {
-          avoidAreas.push(formatAPIPolygon(apiPolygon))
+          const points = this.sanitizePolygonPoints(
+            this.normalizePolygonCoords(apiPolygon, 'lat', 'lon'),
+            maxPoints,
+          )
+          if (points.length >= 3) {
+            candidates.push({ points, priority: 100 })
+          }
         })
       }
-      console.log('Avoid areas:', avoidAreas)
-      // Join all the avoid areas with '|'
-      return avoidAreas.join('|')
+
+      if (this.bostonAvoidPolygons && this.bostonAvoidPolygons.length > 0) {
+        const threshold = this.getDangerThreshold()
+        this.bostonAvoidPolygons.forEach(item => {
+          if (item.maxLevel >= threshold) {
+            const points = this.sanitizePolygonPoints(
+              this.normalizePolygonCoords(item.polygon, 'lat', 'lng'),
+              maxPoints,
+            )
+            if (points.length >= 3) {
+              const count = Number.isFinite(item.count) ? item.count : 0
+              const priority = item.maxLevel * 100000 + count
+              candidates.push({ points, priority })
+            }
+          }
+        })
+      }
+
+      const avoidAreas = [...pinned]
+      const remainingSlots = maxPolygons - avoidAreas.length
+      if (remainingSlots > 0 && candidates.length > 0) {
+        const sorted = candidates.sort((a, b) => b.priority - a.priority)
+        avoidAreas.push(...sorted.slice(0, remainingSlots))
+      }
+
+      const serialized = avoidAreas.map(item => toPolygonString(item.points))
+      console.log('Avoid areas:', serialized)
+      return serialized.join('|')
     },
 
     async onSuccess(result, map) {
       const route = result.routes[0]
 
       // Clear previous routes and markers, but keep the search marker
-      map.removeObjects(
-        map.getObjects().filter(obj => obj !== this.searchMarker),
-      )
+      this.clearMapForRoute(map)
 
       // Add the polygons back to the map
       this.addPolygonsToMap(map)
@@ -1027,14 +1212,42 @@ export default {
       // Emit the data to the parent component
       this.$emit('route-instructions', routeData)
 
+      const routeBounds = this.getRouteBounds(route)
+      const expandedBounds = routeBounds
+        ? this.expandBounds(routeBounds, BOSTON_VIEW_PADDING_RATIO)
+        : null
+      const dangerThreshold = this.getDangerThreshold()
+      const zoom = this.map?.getZoom?.()
+
       // Fetch and add polygons from polyline to avoid crime areas
       const firstPolyline = route.sections[0].polyline
-      const polygons = await this.fetchPolygonsFromPolyline(firstPolyline)
+      const [polygons, bostonPayload] = await Promise.all([
+        this.fetchPolygonsFromPolyline(firstPolyline),
+        expandedBounds
+          ? this.fetchBostonClusters(
+              expandedBounds,
+              Number.isFinite(zoom) ? zoom : null,
+              dangerThreshold,
+            )
+          : null,
+      ])
 
       if (polygons) {
         this.apiPolygons = polygons // Store the polygons for future use
         this.addPolygonsToMapFromAPI(polygons, map)
+      }
 
+      if (bostonPayload?.clusters) {
+        this.setBostonAvoidPolygons(bostonPayload.clusters)
+        this.renderBostonClusters(bostonPayload.clusters, bostonPayload.maxCount)
+      } else {
+        this.bostonAvoidPolygons = []
+      }
+
+      if (
+        (polygons && polygons.length > 0) ||
+        this.bostonAvoidPolygons.length > 0
+      ) {
         this.recalculateRouteWithPolygons(map)
       }
     },
@@ -1044,9 +1257,7 @@ export default {
       const route = result.routes[0]
 
       // Clear previous routes and markers, but keep the search marker
-      map.removeObjects(
-        map.getObjects().filter(obj => obj !== this.searchMarker),
-      )
+      this.clearMapForRoute(map)
 
       // Add the polygons back to the map
       this.addPolygonsToMap(map)
