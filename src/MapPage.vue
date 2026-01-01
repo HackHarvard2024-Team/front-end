@@ -170,12 +170,13 @@
           <label for="dangerLevel">Danger Level: {{ dangerLevel }}</label>
           <input
             type="range"
-            min="0"
+            min="1"
             max="5"
             step="1"
             v-model.number="dangerLevel"
             id="dangerLevel"
           />
+          <p class="danger-note">Default danger level is 3.</p>
         </div>
 
         <!-- Submit button -->
@@ -240,8 +241,8 @@ export default {
   data() {
     return {
       center: {
-        lat: 40.7831,
-        lng: -73.9712,
+        lat: 42.3601,
+        lng: -71.0589,
       },
       startAddress: '',
       destAddress: '',
@@ -255,7 +256,7 @@ export default {
       apiKey: import.meta.env.VITE_HERE_API_KEY,
       routeInstructions: null, // Will store the route instructions and summary
       unit: 'miles', // Default unit for distance
-      dangerLevel: 0, // Default danger level
+      dangerLevel: 3, // Default danger level
     }
   },
   created() {
@@ -655,6 +656,12 @@ div #transportation-label {
 
 .slider-container input[type='range']:hover {
   background: #4285f4;
+}
+
+.danger-note {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6c757d;
 }
 
 /* Submit button styling */
