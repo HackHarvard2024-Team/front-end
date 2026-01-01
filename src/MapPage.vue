@@ -253,15 +253,9 @@ export default {
       destLng: null,
       origin: null, // Will be set when the user submits
       destination: null, // Will be set when the user submits
-      apiKey: import.meta.env.VITE_HERE_API_KEY,
       routeInstructions: null, // Will store the route instructions and summary
       unit: 'miles', // Default unit for distance
       dangerLevel: 3, // Default danger level
-    }
-  },
-  created() {
-    if (!this.apiKey) {
-      console.warn('Missing VITE_HERE_API_KEY; HERE geocoding will fail.')
     }
   },
   methods: {
@@ -303,27 +297,19 @@ export default {
         alert('An error occurred during geocoding.')
       }
     },
-    geocodeAddress(address) {
-      // Return a Promise to handle asynchronous operation
-      return new Promise((resolve, reject) => {
-        const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(
-          address,
-        )}&apiKey=${this.apiKey}`
-        fetch(url)
-          .then(response => response.json())
-          .then(data => {
-            if (data.items && data.items.length > 0) {
-              const position = data.items[0].position
-              resolve(position)
-            } else {
-              resolve(null)
-            }
-          })
-          .catch(error => {
-            console.error('Error during geocoding:', error)
-            reject(error)
-          })
-      })
+    async geocodeAddress(address) {
+      const url = `/.netlify/functions/here-geocode?q=${encodeURIComponent(
+        address,
+      )}`
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`Geocoding failed: ${response.status}`)
+      }
+      const data = await response.json()
+      if (data.items && data.items.length > 0) {
+        return data.items[0].position
+      }
+      return null
     },
     handleRouteInstructions(routeData) {
       this.routeInstructions = routeData

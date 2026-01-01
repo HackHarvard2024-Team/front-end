@@ -64,14 +64,17 @@
       style="height: 100%; width: 100%"
       ref="hereMap"
     ></div>
+    <div v-if="isMapLoading" class="map-loading">
+      <div class="map-loading-card">
+        <span class="map-loading-spinner" aria-hidden="true"></span>
+        <span class="map-loading-text">Loading map...</span>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-const NYC_CRIME_DATASET_ID = 'qb7u-rbmr'
 const NYC_CRIME_PAGE_SIZE = 1000
-const SODA3_ENDPOINT = `https://data.cityofnewyork.us/api/v3/views/${NYC_CRIME_DATASET_ID}/query.json`
-const SODA2_ENDPOINT = `https://data.cityofnewyork.us/resource/${NYC_CRIME_DATASET_ID}.json`
 const CRIME_POLYGON_RADIUS_METERS = 35
 const METERS_PER_DEGREE_LAT = 111320
 const BOSTON_CSV_URL = new URL('../assets/boston.csv', import.meta.url).href
@@ -128,12 +131,13 @@ export default {
   data() {
     return {
       platform: null,
-      apikey: import.meta.env.VITE_HERE_API_KEY,
-      nycOpenDataToken: import.meta.env.VITE_NYC_OPEN_DATA_APP_TOKEN,
+      apikey: null,
       map: null,
       mapEvents: null,
       behavior: null,
       ui: null,
+      isMapLoading: true,
+      hasMapRendered: false,
       searchQuery: '',
       searchMarker: null, // Marker for the searched place
       apiPolygons: [], // Add this to store API polygons
@@ -156,9 +160,11 @@ export default {
       ],
     }
   },
-  mounted() {
+  async mounted() {
+    await this.fetchHereApiKey()
     if (!this.apikey) {
-      console.warn('Missing VITE_HERE_API_KEY; HERE map cannot initialize.')
+      console.warn('Missing HERE_API_KEY; HERE map cannot initialize.')
+      this.isMapLoading = false
       return
     }
     // Initialize the platform object:
@@ -170,6 +176,19 @@ export default {
     this.loadBostonPoints()
   },
   methods: {
+    async fetchHereApiKey() {
+      try {
+        const response = await fetch('/.netlify/functions/here-config')
+        if (!response.ok) {
+          throw new Error(`HERE config fetch failed: ${response.status}`)
+        }
+        const data = await response.json()
+        this.apikey = data.apiKey || null
+      } catch (error) {
+        console.error('Error loading HERE API key:', error)
+        this.apikey = null
+      }
+    },
     // Navigate to the next suggestion
     focusNextSuggestion() {
       if (this.suggestions.length > 0) {
@@ -216,12 +235,17 @@ export default {
         return
       }
 
-      const url = `https://autocomplete.search.hereapi.com/v1/autocomplete?q=${encodeURIComponent(this.searchQuery)}&apiKey=${this.apikey}&limit=5`
+      const url = `/.netlify/functions/here-autocomplete?q=${encodeURIComponent(
+        this.searchQuery,
+      )}&limit=5`
 
       try {
         const response = await fetch(url)
+        if (!response.ok) {
+          throw new Error(`Autocomplete failed: ${response.status}`)
+        }
         const data = await response.json()
-        this.suggestions = data.items // Store suggestions in array
+        this.suggestions = Array.isArray(data.items) ? data.items : []
       } catch (error) {
         console.error('Error fetching suggestions:', error)
       }
@@ -246,86 +270,16 @@ export default {
     },
 
     async fetchCrimeRows() {
-      const query =
-        'SELECT latitude, longitude, x_coord_cd, y_coord_cd WHERE latitude IS NOT NULL AND longitude IS NOT NULL'
-      const headers = {
-        'Content-Type': 'application/json',
-      }
-      if (this.nycOpenDataToken) {
-        headers['X-App-Token'] = this.nycOpenDataToken
-      }
-
-      try {
-        const response = await fetch(SODA3_ENDPOINT, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            query,
-            page: {
-              pageNumber: 1,
-              pageSize: NYC_CRIME_PAGE_SIZE,
-            },
-            includeSynthetic: false,
-          }),
-        })
-
-        if (response.ok) {
-          const payload = await response.json()
-          const rows = this.normalizeSodaRows(payload)
-          if (rows.length > 0) {
-            return rows
-          }
-        }
-      } catch (error) {
-        console.warn('SODA3 fetch failed, falling back to SODA2.', error)
-      }
-
-      const params = new URLSearchParams({
-        $select: 'latitude,longitude,x_coord_cd,y_coord_cd',
-        $limit: String(NYC_CRIME_PAGE_SIZE),
-        $where: 'latitude IS NOT NULL AND longitude IS NOT NULL',
-      })
-      if (this.nycOpenDataToken) {
-        params.append('$$app_token', this.nycOpenDataToken)
-      }
-
-      const fallbackResponse = await fetch(
-        `${SODA2_ENDPOINT}?${params.toString()}`,
+      const response = await fetch(
+        `/.netlify/functions/nyc-crime?limit=${NYC_CRIME_PAGE_SIZE}`,
       )
-      if (!fallbackResponse.ok) {
+      if (!response.ok) {
         throw new Error(
-          `NYC Open Data fetch failed: ${fallbackResponse.status}`,
+          `NYC Open Data fetch failed: ${response.status}`,
         )
       }
-      return fallbackResponse.json()
-    },
-
-    normalizeSodaRows(payload) {
-      if (!payload) {
-        return []
-      }
-      if (Array.isArray(payload)) {
-        return payload
-      }
-      if (Array.isArray(payload.data)) {
-        if (payload.data.length === 0) {
-          return []
-        }
-        const first = payload.data[0]
-        if (first && typeof first === 'object' && !Array.isArray(first)) {
-          if (first.row) {
-            return payload.data.map(item => item.row)
-          }
-          return payload.data
-        }
-      }
-      if (Array.isArray(payload.results)) {
-        return payload.results
-      }
-      if (Array.isArray(payload.data?.rows)) {
-        return payload.data.rows
-      }
-      return []
+      const rows = await response.json()
+      return Array.isArray(rows) ? rows : []
     },
 
     buildCrimePolygons(rows) {
@@ -1472,7 +1426,7 @@ export default {
 
       // Instantiate and display a map object:
       const map = new H.Map(mapContainer, style, {
-        zoom: 12,
+        zoom: 14,
         center: this.center,
       })
 
@@ -1490,6 +1444,10 @@ export default {
       // Adjust map viewport on window resize
       window.addEventListener('resize', () => map.getViewPort().resize())
       map.addEventListener('mapviewchangeend', () => {
+        if (!this.hasMapRendered) {
+          this.hasMapRendered = true
+          this.isMapLoading = false
+        }
         this.scheduleBostonUpdate()
       })
 
@@ -1738,13 +1696,24 @@ export default {
       return new H.geo.Polygon(linestring)
     },
 
-    async searchPlace() {
+    async searchPlace(positionOverride) {
       if (!this.searchQuery) {
         // alert('Please enter a place to search.')
-        return
+        if (
+          !positionOverride ||
+          !Number.isFinite(positionOverride.lat) ||
+          !Number.isFinite(positionOverride.lng)
+        ) {
+          return
+        }
       }
       try {
-        const position = await this.geocodeAddress(this.searchQuery)
+        const position =
+          positionOverride &&
+          Number.isFinite(positionOverride.lat) &&
+          Number.isFinite(positionOverride.lng)
+            ? positionOverride
+            : await this.geocodeAddress(this.searchQuery)
         console.log('Search result:', position)
         if (!position) {
           // alert('Could not find the place.')
@@ -1772,27 +1741,19 @@ export default {
       }
     },
 
-    geocodeAddress(address) {
-      // Return a Promise to handle asynchronous operation
-      return new Promise((resolve, reject) => {
-        const service = this.platform.getSearchService()
-
-        service.geocode(
-          { q: address },
-          result => {
-            if (result.items && result.items.length > 0) {
-              const position = result.items[0].position
-              resolve(position)
-            } else {
-              resolve(null)
-            }
-          },
-          error => {
-            console.error('Geocoding error:', error)
-            reject(error)
-          },
-        )
-      })
+    async geocodeAddress(address) {
+      const url = `/.netlify/functions/here-geocode?q=${encodeURIComponent(
+        address,
+      )}`
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`Geocoding failed: ${response.status}`)
+      }
+      const data = await response.json()
+      if (data.items && data.items.length > 0) {
+        return data.items[0].position
+      }
+      return null
     },
   },
   watch: {
@@ -1993,5 +1954,43 @@ export default {
 
 .suggestions li:hover {
   background-color: #f0f0f0;
+}
+
+.map-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(248, 250, 252, 0.85);
+  z-index: 900;
+  pointer-events: none;
+}
+
+.map-loading-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.15);
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.map-loading-spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #cbd5f5;
+  border-top-color: #2563eb;
+  animation: mapSpin 0.9s linear infinite;
+}
+
+@keyframes mapSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

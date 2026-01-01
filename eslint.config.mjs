@@ -4,6 +4,18 @@ import pluginVitest from '@vitest/eslint-plugin'
 import pluginCypress from 'eslint-plugin-cypress/flat'
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
 
+const nodeGlobals = {
+  process: 'readonly',
+  __dirname: 'readonly',
+  __filename: 'readonly',
+  Buffer: 'readonly',
+  URL: 'readonly',
+  fetch: 'readonly',
+  Headers: 'readonly',
+  Request: 'readonly',
+  Response: 'readonly',
+}
+
 export default [
   {
     name: 'app/files-to-lint',
@@ -29,6 +41,13 @@ export default [
       'cypress/e2e/**/*.{cy,spec}.{js,ts,jsx,tsx}',
       'cypress/support/**/*.{js,ts,jsx,tsx}' // use single quotes as in the other configs
     ],
+  },
+  {
+    name: 'app/netlify-functions',
+    files: ['netlify/functions/**/*.js'],
+    languageOptions: {
+      globals: nodeGlobals,
+    },
   },
   skipFormatting,
 ]
