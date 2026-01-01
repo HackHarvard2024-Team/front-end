@@ -52,6 +52,13 @@
             >
               Chicago
             </button>
+            <button
+              type="button"
+              :class="{ active: activeCity === 'nyc' }"
+              @click="setCity('nyc')"
+            >
+              New York City
+            </button>
           </div>
         </div>
 
@@ -338,6 +345,7 @@ export default {
       cityCenters: {
         boston: { lat: 42.3601, lng: -71.0589 },
         chicago: { lat: 41.8781, lng: -87.6298 },
+        nyc: { lat: 40.7128, lng: -74.006 },
       },
       center: {
         lat: 42.3601,

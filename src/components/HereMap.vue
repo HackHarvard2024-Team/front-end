@@ -53,7 +53,7 @@
         </div>
         <div class="legend-tip-item">
           <span class="legend-icon legend-icon-city">
-            {{ city === 'chicago' ? 'C' : 'B' }}
+            {{ city === 'chicago' ? 'C' : city === 'nyc' ? 'N' : 'B' }}
           </span>
           <span>Currently focused on {{ cityLabel }} data.</span>
         </div>
@@ -150,6 +150,12 @@ export default {
       chicagoAvoidPolygons: [],
       chicagoDetailCache: new Map(),
       chicagoDetailContext: null,
+      nycPolygonObjects: [],
+      nycPolygonsLoading: false,
+      nycRequestId: 0,
+      nycAvoidPolygons: [],
+      nycDetailCache: new Map(),
+      nycDetailContext: null,
       originMarker: null,
       destinationMarker: null,
       endpointIcons: {},
@@ -183,11 +189,16 @@ export default {
       apikey: this.apikey,
     })
     this.initializeHereMap()
-    this.loadCrimePolygons()
   },
   computed: {
     cityLabel() {
-      return this.city === 'chicago' ? 'Chicago' : 'Boston'
+      if (this.city === 'chicago') {
+        return 'Chicago'
+      }
+      if (this.city === 'nyc') {
+        return 'New York City'
+      }
+      return 'Boston'
     },
   },
   methods: {
@@ -353,6 +364,9 @@ export default {
       if (this.city === 'chicago') {
         return this.updateChicagoPolygonsInView()
       }
+      if (this.city === 'nyc') {
+        return this.updateNycPolygonsInView()
+      }
       return this.updateBostonPolygonsInView()
     },
 
@@ -440,6 +454,48 @@ export default {
       }
     },
 
+    async updateNycPolygonsInView() {
+      if (!this.map) {
+        return
+      }
+      const bounds = this.getMapBounds()
+      if (!bounds) {
+        return
+      }
+      const expanded = this.expandBounds(bounds, BOSTON_VIEW_PADDING_RATIO)
+      if (!expanded) {
+        return
+      }
+      const zoom = this.map?.getZoom?.()
+      const threshold = this.getDangerThreshold()
+      const requestId = this.nycRequestId + 1
+      this.nycRequestId = requestId
+      this.nycPolygonsLoading = true
+
+      try {
+        const payload = await this.fetchNycClusters(
+          expanded,
+          Number.isFinite(zoom) ? zoom : null,
+          threshold,
+        )
+        if (requestId !== this.nycRequestId) {
+          return
+        }
+        this.nycDetailContext = payload?.context || null
+        const clusters = Array.isArray(payload?.clusters)
+          ? payload.clusters
+          : []
+        this.setNycAvoidPolygons(clusters)
+        this.renderCityClusters('nyc', clusters, payload?.maxCount)
+      } catch (error) {
+        console.error('Error loading NYC clusters:', error)
+      } finally {
+        if (requestId === this.nycRequestId) {
+          this.nycPolygonsLoading = false
+        }
+      }
+    },
+
     async fetchBostonClusters(bounds, zoom, dangerLevel) {
       const params = new URLSearchParams({
         north: String(bounds.north),
@@ -476,6 +532,26 @@ export default {
       )
       if (!response.ok) {
         throw new Error(`Chicago clusters fetch failed: ${response.status}`)
+      }
+      return response.json()
+    },
+
+    async fetchNycClusters(bounds, zoom, dangerLevel) {
+      const params = new URLSearchParams({
+        north: String(bounds.north),
+        south: String(bounds.south),
+        east: String(bounds.east),
+        west: String(bounds.west),
+        dangerLevel: String(dangerLevel),
+      })
+      if (Number.isFinite(zoom)) {
+        params.set('zoom', String(zoom))
+      }
+      const response = await fetch(
+        `/.netlify/functions/nyc-clusters?${params.toString()}`,
+      )
+      if (!response.ok) {
+        throw new Error(`NYC clusters fetch failed: ${response.status}`)
       }
       return response.json()
     },
@@ -729,6 +805,25 @@ export default {
         return
       }
       this.chicagoAvoidPolygons = clusters
+        .map(cluster => ({
+          polygon: cluster?.polygon,
+          maxLevel: cluster?.summary?.maxLevel ?? cluster?.maxLevel ?? 1,
+          count: cluster?.summary?.total ?? cluster?.count ?? 0,
+        }))
+        .filter(
+          item =>
+            Array.isArray(item.polygon) &&
+            item.polygon.length >= 3 &&
+            Number.isFinite(item.maxLevel),
+        )
+    },
+
+    setNycAvoidPolygons(clusters) {
+      if (!Array.isArray(clusters)) {
+        this.nycAvoidPolygons = []
+        return
+      }
+      this.nycAvoidPolygons = clusters
         .map(cluster => ({
           polygon: cluster?.polygon,
           maxLevel: cluster?.summary?.maxLevel ?? cluster?.maxLevel ?? 1,
@@ -1109,14 +1204,22 @@ export default {
     },
 
     getActiveAvoidPolygons() {
-      return this.city === 'chicago'
-        ? this.chicagoAvoidPolygons
-        : this.bostonAvoidPolygons
+      if (this.city === 'chicago') {
+        return this.chicagoAvoidPolygons
+      }
+      if (this.city === 'nyc') {
+        return this.nycAvoidPolygons
+      }
+      return this.bostonAvoidPolygons
     },
 
     clearCityPolygons(city) {
       const polygonKey =
-        city === 'chicago' ? 'chicagoPolygonObjects' : 'bostonPolygonObjects'
+        city === 'chicago'
+          ? 'chicagoPolygonObjects'
+          : city === 'nyc'
+            ? 'nycPolygonObjects'
+            : 'bostonPolygonObjects'
       const objects = this[polygonKey] || []
       if (this.map && objects.length > 0) {
         this.map.removeObjects(objects)
@@ -1128,6 +1231,9 @@ export default {
       if (city === 'chicago') {
         this.chicagoAvoidPolygons = []
         this.chicagoDetailContext = null
+      } else if (city === 'nyc') {
+        this.nycAvoidPolygons = []
+        this.nycDetailContext = null
       } else {
         this.bostonAvoidPolygons = []
         this.bostonDetailContext = null
@@ -1141,6 +1247,7 @@ export default {
       const keep = new Set([
         ...this.bostonPolygonObjects,
         ...this.chicagoPolygonObjects,
+        ...this.nycPolygonObjects,
       ])
       if (this.searchMarker) {
         keep.add(this.searchMarker)
@@ -1163,7 +1270,11 @@ export default {
         return
       }
       const polygonKey =
-        city === 'chicago' ? 'chicagoPolygonObjects' : 'bostonPolygonObjects'
+        city === 'chicago'
+          ? 'chicagoPolygonObjects'
+          : city === 'nyc'
+            ? 'nycPolygonObjects'
+            : 'bostonPolygonObjects'
       const currentObjects = this[polygonKey] || []
       if (currentObjects.length > 0) {
         map.removeObjects(currentObjects)
@@ -1283,13 +1394,22 @@ export default {
         return null
       }
       const isChicago = city === 'chicago'
+      const isNyc = city === 'nyc'
       const detailCache = isChicago
         ? this.chicagoDetailCache
-        : this.bostonDetailCache
+        : isNyc
+          ? this.nycDetailCache
+          : this.bostonDetailCache
       const detailContext = isChicago
         ? this.chicagoDetailContext
-        : this.bostonDetailContext
-      const endpoint = isChicago ? 'chicago-clusters' : 'boston-clusters'
+        : isNyc
+          ? this.nycDetailContext
+          : this.bostonDetailContext
+      const endpoint = isChicago
+        ? 'chicago-clusters'
+        : isNyc
+          ? 'nyc-clusters'
+          : 'boston-clusters'
       const cacheKey = detailKey || `index:${detailIndex}`
       const cached = detailCache.get(cacheKey)
       if (cached) {
@@ -1681,6 +1801,12 @@ export default {
                 Number.isFinite(zoom) ? zoom : null,
                 dangerThreshold,
               )
+            : this.city === 'nyc'
+              ? this.fetchNycClusters(
+                  expandedBounds,
+                  Number.isFinite(zoom) ? zoom : null,
+                  dangerThreshold,
+                )
             : this.fetchBostonClusters(
                 expandedBounds,
                 Number.isFinite(zoom) ? zoom : null,
@@ -1698,6 +1824,9 @@ export default {
         if (this.city === 'chicago') {
           this.chicagoDetailContext = cityPayload.context || null
           this.setChicagoAvoidPolygons(cityPayload.clusters)
+        } else if (this.city === 'nyc') {
+          this.nycDetailContext = cityPayload.context || null
+          this.setNycAvoidPolygons(cityPayload.clusters)
         } else {
           this.bostonDetailContext = cityPayload.context || null
           this.setBostonAvoidPolygons(cityPayload.clusters)
@@ -1710,6 +1839,8 @@ export default {
       } else {
         if (this.city === 'chicago') {
           this.chicagoAvoidPolygons = []
+        } else if (this.city === 'nyc') {
+          this.nycAvoidPolygons = []
         } else {
           this.bostonAvoidPolygons = []
         }
