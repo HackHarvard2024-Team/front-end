@@ -91,6 +91,7 @@ const BOSTON_CLUSTER_EXPANSION_MAX = 0.1
 const BOSTON_CLUSTER_SMALL_POLY_SIDES = 6
 const BOSTON_CLUSTER_TOP_OFFENSE_LIMIT = 4
 const BOSTON_CLUSTER_SAMPLE_LIMIT = 8
+const DEFAULT_MAP_ZOOM = 14
 const BOSTON_DANGER_LEVELS = [
   { level: 1, label: 'Low', rgb: '34,197,94' },
   { level: 2, label: 'Guarded', rgb: '132,204,22' },
@@ -138,6 +139,7 @@ export default {
       ui: null,
       isMapLoading: true,
       hasMapRendered: false,
+      hasAppliedInitialView: false,
       searchQuery: '',
       searchMarker: null, // Marker for the searched place
       apiPolygons: [], // Add this to store API polygons
@@ -188,6 +190,24 @@ export default {
         console.error('Error loading HERE API key:', error)
         this.apikey = null
       }
+    },
+    applyInitialView(force = false) {
+      if (!this.map) {
+        return
+      }
+      if (this.hasAppliedInitialView && !force) {
+        return
+      }
+      const center =
+        this.center &&
+        Number.isFinite(this.center.lat) &&
+        Number.isFinite(this.center.lng)
+          ? this.center
+          : { lat: 42.3601, lng: -71.0589 }
+      this.map
+        .getViewModel()
+        .setLookAtData({ position: center, zoom: DEFAULT_MAP_ZOOM }, true)
+      this.hasAppliedInitialView = true
     },
     // Navigate to the next suggestion
     focusNextSuggestion() {
@@ -274,9 +294,7 @@ export default {
         `/.netlify/functions/nyc-crime?limit=${NYC_CRIME_PAGE_SIZE}`,
       )
       if (!response.ok) {
-        throw new Error(
-          `NYC Open Data fetch failed: ${response.status}`,
-        )
+        throw new Error(`NYC Open Data fetch failed: ${response.status}`)
       }
       const rows = await response.json()
       return Array.isArray(rows) ? rows : []
@@ -1426,7 +1444,7 @@ export default {
 
       // Instantiate and display a map object:
       const map = new H.Map(mapContainer, style, {
-        zoom: 14,
+        zoom: DEFAULT_MAP_ZOOM,
         center: this.center,
       })
 
@@ -1440,6 +1458,11 @@ export default {
       map.getViewPort().element.style.touchAction = 'none'
       const ui = H.ui.UI.createDefault(map, defaultLayers)
       this.ui = ui
+      this.applyInitialView(true)
+      requestAnimationFrame(() => {
+        map.getViewPort().resize()
+        this.applyInitialView(true)
+      })
 
       // Adjust map viewport on window resize
       window.addEventListener('resize', () => map.getViewPort().resize())
@@ -1850,7 +1873,7 @@ export default {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
   font-size: 12px;
   text-align: left;
-  max-width: 220px;
+  max-width: 221px;
 }
 
 .legend-title {
@@ -1881,7 +1904,7 @@ export default {
   font-size: 11px;
   color: #475569;
   line-height: 1.3;
-  max-width: 220px;
+  max-width: 221px;
   text-align: left;
 }
 
