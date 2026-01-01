@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import WelcomePage from '../components/WelcomePage.vue'
 import MapPage from '../MapPage.vue' // Import the new MapPage
 
 const router = createRouter({
@@ -7,13 +6,12 @@ const router = createRouter({
   routes: [
     {
       path: '/', // Default path
-      name: 'welcome',
-      component: WelcomePage,
-    },
-    {
-      path: '/map', // Map path
       name: 'map',
       component: MapPage, // Now using MapPage
+    },
+    {
+      path: '/map', // Legacy path
+      redirect: '/',
     },
   ],
 })
