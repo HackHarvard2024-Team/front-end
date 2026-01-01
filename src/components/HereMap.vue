@@ -27,20 +27,6 @@
       </button>
     </div>
 
-    <label class="switch">
-      <input type="checkbox" v-model="isDarkMode" @change="toggleMapMode" />
-      <span class="slider round"></span>
-    </label>
-
-    <!-- My Location Button -->
-    <button class="my-location-btn" @click="getMyLocation">
-      <img
-        class="current-top-icon"
-        src="../assets/current.svg"
-        alt="Location"
-      />
-      <!-- <img src="/path/to/location-icon.png" alt="My Location Icon" /> -->
-    </button>
     <!-- The HERE Map will render in this div -->
     <div
       id="mapContainer"
@@ -60,7 +46,7 @@ export default {
     },
     center: {
       type: Object,
-      default: () => ({ lat: 40.73061, lng: -73.935242 }), // Default center if not provided
+      default: () => ({ lat: 40.7831, lng: -73.9712 }), // Manhattan default center
     },
     origin: {
       type: Object,
@@ -77,8 +63,6 @@ export default {
   },
   data() {
     return {
-      currentLocationMarker: null,
-      isDarkMode: false,
       platform: null,
       apikey: import.meta.env.VITE_HERE_API_KEY,
       map: null,
@@ -239,34 +223,6 @@ export default {
       }
     },
 
-    getMyLocation() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(position => {
-          const lat = position.coords.latitude
-          const lng = position.coords.longitude
-          const userPosition = { lat, lng }
-          const H = window.H
-
-          // Remove existing location marker if it exists
-          if (this.currentLocationMarker) {
-            this.currentLocationMarker.setGeometry(userPosition)
-          } else {
-            // Create a new marker if it doesn't exist
-            this.currentLocationMarker = new H.map.Marker(userPosition)
-            this.map.addObject(this.currentLocationMarker)
-          }
-
-          // Center the map on the searched place
-          this.map.getViewModel().setLookAtData({
-            position: userPosition,
-            zoom: 15, // Adjust or remove zoom if bounds are used
-          })
-        })
-      } else {
-        // alert('Geolocation is not supported by your browser.')
-      }
-    },
-
     initializeHereMap() {
       const H = window.H
       const mapContainer = this.$refs.hereMap
@@ -274,13 +230,11 @@ export default {
 
       // Obtain the default map layers from the platform object
       const defaultLayers = this.platform.createDefaultLayers()
-      const style = this.isDarkMode
-        ? defaultLayers.raster.normal.mapnight
-        : defaultLayers.vector.normal.map
+      const style = defaultLayers.vector.normal.map
 
       // Instantiate and display a map object:
       const map = new H.Map(mapContainer, style, {
-        zoom: 13,
+        zoom: 12,
         center: this.center,
       })
 
@@ -290,6 +244,8 @@ export default {
       // Enable the event system and default interactions:
       this.mapEvents = new H.mapevents.MapEvents(map)
       this.behavior = new H.mapevents.Behavior(this.mapEvents)
+      // Ensure touch gestures are captured by the map viewport.
+      map.getViewPort().element.style.touchAction = 'none'
       const ui = H.ui.UI.createDefault(map, defaultLayers)
       this.ui = ui
 
@@ -298,17 +254,6 @@ export default {
 
       // Add the polygons to the map
       this.addPolygonsToMap(map)
-
-      this.getMyLocation()
-    },
-    toggleMapMode() {
-      const defaultLayers = this.platform.createDefaultLayers()
-      const style = this.isDarkMode
-        ? defaultLayers.raster.normal.mapnight
-        : defaultLayers.vector.normal.map
-
-      // Switch the base layer without disposing the map
-      this.map.setBaseLayer(style)
     },
 
     calculateRouteFromAtoB(map) {
@@ -369,12 +314,7 @@ export default {
 
       // Clear previous routes and markers, but keep the search marker
       map.removeObjects(
-        map
-          .getObjects()
-          .filter(
-            obj =>
-              obj !== this.searchMarker && obj !== this.currentLocationMarker,
-          ),
+        map.getObjects().filter(obj => obj !== this.searchMarker),
       )
 
       // Add the polygons back to the map
@@ -409,12 +349,7 @@ export default {
 
       // Clear previous routes and markers, but keep the search marker
       map.removeObjects(
-        map
-          .getObjects()
-          .filter(
-            obj =>
-              obj !== this.searchMarker && obj !== this.currentLocationMarker,
-          ),
+        map.getObjects().filter(obj => obj !== this.searchMarker),
       )
 
       // Add the polygons back to the map
@@ -646,7 +581,7 @@ export default {
   position: absolute;
   top: 10px;
   left: 10%;
-  width: 70%;
+  width: 80%;
   display: flex;
   z-index: 1000;
   align-items: center;
@@ -710,77 +645,5 @@ export default {
 
 .suggestions li:hover {
   background-color: #f0f0f0;
-}
-
-.switch {
-  position: absolute;
-  top: 10px; /* Aligns it with the search bar */
-  right: 10%; /* Places it next to the search bar on the right */
-  display: inline-block;
-  width: 60px;
-  height: 34px;
-  z-index: 1000; /* Ensures it's above the map */
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  transition: 0.4s;
-}
-
-.slider:before {
-  position: absolute;
-  content: '';
-  height: 26px;
-  width: 26px;
-  left: 4px;
-  bottom: 4px;
-  background-color: white;
-  transition: 0.4s;
-}
-
-input:checked + .slider {
-  background-color: #2196f3;
-}
-
-input:checked + .slider:before {
-  transform: translateX(26px);
-}
-
-.slider.round {
-  border-radius: 34px;
-}
-
-.slider.round:before {
-  border-radius: 50%;
-}
-
-.my-location-btn {
-  position: absolute;
-  top: 7px;
-  right: 37px;
-  background: white;
-  border: none;
-  padding: 8px;
-  border-radius: 50%;
-  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
-  cursor: pointer;
-  z-index: 1000;
-}
-
-.my-location-btn img {
-  width: 24px;
-  height: 24px;
 }
 </style>

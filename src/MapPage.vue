@@ -49,13 +49,6 @@
               >Starting Address</label
             >
           </div>
-          <button @click="setCurrentLocation('start')">
-            <img
-              class="current-icon"
-              src="./assets/current.svg"
-              alt="Location"
-            />
-          </button>
         </div>
 
         <!-- Input fields for destination address -->
@@ -72,13 +65,6 @@
               >Destination Address</label
             >
           </div>
-          <button @click="setCurrentLocation('dest')">
-            <img
-              class="current-icon"
-              src="./assets/current.svg"
-              alt="Location"
-            />
-          </button>
         </div>
 
         <!-- Transportation Mode Selection -->
@@ -254,8 +240,8 @@ export default {
   data() {
     return {
       center: {
-        lat: 40.73061,
-        lng: -73.935242,
+        lat: 40.7831,
+        lng: -73.9712,
       },
       startAddress: '',
       destAddress: '',
@@ -270,8 +256,6 @@ export default {
       routeInstructions: null, // Will store the route instructions and summary
       unit: 'miles', // Default unit for distance
       dangerLevel: 0, // Default danger level
-      isStartCurrentLocation: false,
-      isDestCurrentLocation: false,
     }
   },
   created() {
@@ -292,62 +276,25 @@ export default {
     toggleUnit() {
       this.unit = this.unit === 'miles' ? 'kilometers' : 'miles'
     },
-    setCurrentLocation(type) {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(position => {
-          const lat = position.coords.latitude
-          const lng = position.coords.longitude
-          if (type === 'start') {
-            this.startAddress = 'Current Location'
-            this.startLat = lat
-            this.startLng = lng
-            this.isStartCurrentLocation = true
-          } else if (type === 'dest') {
-            this.destAddress = 'Current Location'
-            this.destLat = lat
-            this.destLng = lng
-            this.isDestCurrentLocation = true
-          }
-        })
-      } else {
-        // alert('Geolocation is not supported by your browser.')
-      }
-    },
     async submit() {
       try {
-        if (
-          this.startAddress === 'Current Location' &&
-          this.isStartCurrentLocation
-        ) {
-          // Current location is already set, use it
-          this.origin = { lat: this.startLat, lng: this.startLng }
-        } else {
-          const startPosition = await this.geocodeAddress(this.startAddress)
-          if (!startPosition) {
-            // alert('Could not geocode the starting address.')
-            return
-          }
-          this.startLat = startPosition.lat
-          this.startLng = startPosition.lng
-          this.origin = { lat: this.startLat, lng: this.startLng }
+        const startPosition = await this.geocodeAddress(this.startAddress)
+        if (!startPosition) {
+          // alert('Could not geocode the starting address.')
+          return
         }
+        this.startLat = startPosition.lat
+        this.startLng = startPosition.lng
+        this.origin = { lat: this.startLat, lng: this.startLng }
 
-        if (
-          this.destAddress === 'Current Location' &&
-          this.isDestCurrentLocation
-        ) {
-          // Current location is already set, use it
-          this.destination = { lat: this.destLat, lng: this.destLng }
-        } else {
-          const destPosition = await this.geocodeAddress(this.destAddress)
-          if (!destPosition) {
-            // alert('Could not geocode the destination address.')
-            return
-          }
-          this.destLat = destPosition.lat
-          this.destLng = destPosition.lng
-          this.destination = { lat: this.destLat, lng: this.destLng }
+        const destPosition = await this.geocodeAddress(this.destAddress)
+        if (!destPosition) {
+          // alert('Could not geocode the destination address.')
+          return
         }
+        this.destLat = destPosition.lat
+        this.destLng = destPosition.lng
+        this.destination = { lat: this.destLat, lng: this.destLng }
 
         // Once the origin and destination are set, trigger the map to calculate the route
       } catch (error) {
@@ -576,16 +523,6 @@ export default {
   color: #000;
 }
 
-.current-icon {
-  width: 24px; /* Adjust size as needed */
-  height: 24px;
-  transition: transform 0.3s ease;
-}
-
-.sidebar button:hover .current-icon {
-  transform: rotate(20deg); /* Slight rotation effect on hover */
-}
-
 .floating-label-group {
   position: relative;
   margin-top: 15px;
@@ -625,15 +562,10 @@ export default {
   display: flex;
   align-items: center;
   margin-bottom: 0.25rem;
-  justify-content: space-evenly;
 }
 
-.current-icon {
-  width: 24px;
-  height: 24px;
-  margin-left: 10px;
-
-  margin-bottom: -19px;
+.input-container .floating-label-group {
+  flex: 1;
 }
 .transport-mode-container {
   margin-top: 15px;
