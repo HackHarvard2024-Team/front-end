@@ -15,6 +15,7 @@ In the journey toward Smart Cities, safety is often sidelined. Many navigation t
 ## ✨ What It Does
 
 Albatross uses real-time crime data and traffic patterns to:
+
 1. Identify high-risk zones (visualized as polygons).
 2. Calculate the safest routes, avoiding these zones.
 3. Display the routes and risk zones on an intuitive dashboard.
@@ -26,6 +27,7 @@ In its current **demo mode**, the project includes **hardcoded polygons** repres
 ## 🛠 How It Works
 
 1. **Data Collection and Processing**:
+
    - Crime data is ingested into a **Databricks Delta Lake** from public datasets or live streams.
    - An ETL (Extract, Transform, Load) pipeline processes this data:
      - **E**: Extracts raw crime data.
@@ -33,6 +35,7 @@ In its current **demo mode**, the project includes **hardcoded polygons** repres
      - **L**: Loads the processed data into the Delta Lake as structured crime hot zones.
 
 2. **Routing and Navigation**:
+
    - The list of nearby N-gon crime hot zones is sent to **Cloudflare Workers**, which encode this data into lightweight **flexible polylines**.
    - The **HERE Routing API** receives this encoded data and calculates the safest and fastest route, avoiding these high-crime zones.
 
@@ -52,27 +55,30 @@ In its current **demo mode**, the project includes **hardcoded polygons** repres
 
 ## 🛡️ Features
 
-- **Interactive Map**: Displays safe routes while overlaying polygons for visual clarity.  
-- **AI-Powered Safety**: Routes are optimized using AI to avoid high-risk areas.  
-- **Preloaded Risk Zones**: Hardcoded polygons are used in demo mode for testing and presentation.  
-- **Seamless Integration**: Combines cutting-edge tools and frameworks to deliver a scalable solution.  
+- **Interactive Map**: Displays safe routes while overlaying polygons for visual clarity.
+- **AI-Powered Safety**: Routes are optimized using AI to avoid high-risk areas.
+- **Preloaded Risk Zones**: Hardcoded polygons are used in demo mode for testing and presentation.
+- **Seamless Integration**: Combines cutting-edge tools and frameworks to deliver a scalable solution.
 
 ---
 
 ## 🚀 Tech Stack
 
 ### Frontend
+
 - **Vue.js**: For building a dynamic and interactive user interface.
 - **HERE Routing API**: For calculating optimal and safe routes.
 - **JavaScript**: Core scripting for the frontend.
 
 ### Backend & Processing
+
 - **Databricks**: For data storage and ETL pipelines.
 - **Delta Lake**: Enables efficient storage and query execution for crime data.
 - **MLflow**: Powers AI models for clustering and identifying crime hot zones.
 - **Cloudflare Workers**: Handles polyline encoding and routing logic.
 
 ### Infrastructure
+
 - **Amazon Web Services (AWS)**: Hosts the entire data pipeline.
 - **Scala & Python**: Used for data preprocessing and AI model implementation.
 - **OpenAI**: Assists with advanced decision-making and routing models.
@@ -88,25 +94,25 @@ Try out the hackathon demonstration here:
 
 ## 🏆 Accomplishments
 
-- Successfully built a hackathon-ready frontend showcasing core functionalities.  
-- Fully operational during the hackathon, leveraging AWS for real-time crime data ingestion and processing.  
-- Demonstrated route safety visualization with hardcoded data in demo mode.  
+- Successfully built a hackathon-ready frontend showcasing core functionalities.
+- Fully operational during the hackathon, leveraging AWS for real-time crime data ingestion and processing.
+- Demonstrated route safety visualization with hardcoded data in demo mode.
 
 ---
 
 ## 📚 Lessons Learned
 
-- Learned to simulate real-time data with hardcoded examples under budget constraints.  
-- Improved skills in building responsive map-based user interfaces.  
-- Gained hands-on experience with HERE Routing API.  
+- Learned to simulate real-time data with hardcoded examples under budget constraints.
+- Improved skills in building responsive map-based user interfaces.
+- Gained hands-on experience with HERE Routing API.
 
 ---
 
 ## 🌟 What's Next
 
-- **Real-Time Crime Data**: Reactivate AWS services for dynamic polygon updates.  
-- **Advanced Routing Logic**: Implement machine learning models for predictive safety mapping.  
-- **Custom Features**: Allow users to personalize routes based on their preferences.  
+- **Real-Time Crime Data**: Reactivate AWS services for dynamic polygon updates.
+- **Advanced Routing Logic**: Implement machine learning models for predictive safety mapping.
+- **Custom Features**: Allow users to personalize routes based on their preferences.
 
 ---
 

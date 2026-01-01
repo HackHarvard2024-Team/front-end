@@ -80,8 +80,10 @@ export default {
       currentLocationMarker: null,
       isDarkMode: false,
       platform: null,
-      apikey: 'WHOSPkTEgm_qFM-8asn9-PHpB75Pj6JQjYzot2OMNrw', // Replace with your actual API key
+      apikey: import.meta.env.VITE_HERE_API_KEY,
       map: null,
+      mapEvents: null,
+      behavior: null,
       ui: null,
       searchQuery: '',
       searchMarker: null, // Marker for the searched place
@@ -98,6 +100,10 @@ export default {
     }
   },
   mounted() {
+    if (!this.apikey) {
+      console.warn('Missing VITE_HERE_API_KEY; HERE map cannot initialize.')
+      return
+    }
     // Initialize the platform object:
     this.platform = new window.H.service.Platform({
       apikey: this.apikey,
@@ -264,6 +270,7 @@ export default {
     initializeHereMap() {
       const H = window.H
       const mapContainer = this.$refs.hereMap
+      mapContainer.style.touchAction = 'none'
 
       // Obtain the default map layers from the platform object
       const defaultLayers = this.platform.createDefaultLayers()
@@ -281,7 +288,8 @@ export default {
       this.map = map
 
       // Enable the event system and default interactions:
-      new H.mapevents.Behavior(new H.mapevents.MapEvents(map))
+      this.mapEvents = new H.mapevents.MapEvents(map)
+      this.behavior = new H.mapevents.Behavior(this.mapEvents)
       const ui = H.ui.UI.createDefault(map, defaultLayers)
       this.ui = ui
 

@@ -266,12 +266,17 @@ export default {
       destLng: null,
       origin: null, // Will be set when the user submits
       destination: null, // Will be set when the user submits
-      apiKey: 'WHOSPkTEgm_qFM-8asn9-PHpB75Pj6JQjYzot2OMNrw', // Replace with your actual HERE API key
+      apiKey: import.meta.env.VITE_HERE_API_KEY,
       routeInstructions: null, // Will store the route instructions and summary
       unit: 'miles', // Default unit for distance
       dangerLevel: 0, // Default danger level
       isStartCurrentLocation: false,
       isDestCurrentLocation: false,
+    }
+  },
+  created() {
+    if (!this.apiKey) {
+      console.warn('Missing VITE_HERE_API_KEY; HERE geocoding will fail.')
     }
   },
   methods: {
