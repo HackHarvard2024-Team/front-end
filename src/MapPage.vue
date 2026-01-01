@@ -634,6 +634,7 @@ div #transportation-label {
 .slider-container input[type='range'] {
   width: 100%;
   height: 8px;
+  appearance: none;
   -webkit-appearance: none;
   background: #ccc;
   outline: none;
