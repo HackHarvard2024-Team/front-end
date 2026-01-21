@@ -12,6 +12,8 @@
   <img src="https://img.shields.io/badge/Built%20At-HackHarvard%202024-crimson?style=for-the-badge" alt="HackHarvard 2024"/>
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License"/>
 </p>
+  
+</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Vue.js-4FC08D?style=flat-square&logo=vue.js&logoColor=white" alt="Vue.js"/>
@@ -31,6 +33,14 @@
   <a href="#getting-started">Getting Started</a> &bull;
   <a href="#team">Team</a>
 </p>
+
+<div align="center">
+
+_Complete walkthrough demonstrating route search, danger slider tuning, hot-zone visualization, and safe rerouting_
+
+https://github.com/user-attachments/assets/b0b111f4-f77f-404d-b767-f29e7a374d88
+
+</div>
 
 ---
 
